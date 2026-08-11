@@ -92,6 +92,7 @@ class QuestionToolBlock {
     List<ResultScoreMap>? optionScores,
     this.imageLayout = ImageChoiceLayout.list,
     this.tileColumns = 2,
+    this.correctOptionIndex,
   })  : options = options ?? _defaultOptions(kind),
         optionImages = optionImages ??
             List<String?>.filled(
@@ -119,8 +120,32 @@ class QuestionToolBlock {
   /// Parallel to [options] (or range buttons for [QuestionToolKind.range]).
   List<ResultScoreMap> optionScores;
 
+  /// For quiz games: which option is correct (null = derive / default).
+  int? correctOptionIndex;
+
   int get choiceCount =>
       kind == QuestionToolKind.range ? rangeLabels.length : options.length;
+
+  /// Best-effort correct option for quiz review/scoring.
+  int resolveCorrectIndexForQuiz() {
+    if (correctOptionIndex != null &&
+        correctOptionIndex! >= 0 &&
+        correctOptionIndex! < choiceCount) {
+      return correctOptionIndex!;
+    }
+    var best = 0;
+    var bestPts = -1;
+    var anyScored = false;
+    for (var i = 0; i < choiceCount; i++) {
+      final pts = totalAssignedPoints(i);
+      if (pts > 0) anyScored = true;
+      if (pts > bestPts) {
+        bestPts = pts;
+        best = i;
+      }
+    }
+    return anyScored ? best : 0;
+  }
 
   static List<String> _defaultOptions(QuestionToolKind kind) {
     switch (kind) {
@@ -183,6 +208,7 @@ class QuestionToolBlock {
           .toList(),
       imageLayout: imageLayout,
       tileColumns: tileColumns,
+      correctOptionIndex: correctOptionIndex,
     );
   }
 

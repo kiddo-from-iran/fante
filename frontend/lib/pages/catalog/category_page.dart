@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/models/game_model.dart';
 import 'package:frontend/pages/catalog/catalog_assets.dart';
-import 'package:frontend/pages/catalog/catalog_routes.dart';
+import 'package:frontend/pages/catalog/catalog_catalog.dart';
 import 'package:frontend/pages/catalog/widgets/catalog_filter_section.dart';
+import 'package:frontend/pages/catalog/widgets/catalog_results_grid.dart';
 import 'package:frontend/pages/catalog/widgets/category_topic_card.dart';
 import 'package:frontend/pages/catalog/widgets/category_topic_row.dart';
+import 'package:frontend/pages/dashboard/game_editor/player_game.dart';
+import 'package:frontend/pages/game/game_routes.dart';
+import 'package:frontend/pages/game/overview/game_overview_args.dart';
+import 'package:frontend/pages/game/utils/player_game_mapper.dart';
 import 'package:frontend/pages/home/widgets/home_nav_bar.dart';
 import 'package:frontend/theme/app_colors.dart';
 import 'package:frontend/theme/text_theme.dart';
 import 'package:frontend/widgets/footer/app_footer.dart';
 
 const double _maxContentWidth = 1120;
+const int _pageSize = 12;
 
 class CategoryPage extends StatefulWidget {
   const CategoryPage({
@@ -32,6 +39,10 @@ class _CategoryPageState extends State<CategoryPage> {
   String? _selectedStatus;
   String? _selectedPlayers;
   String? _selectedDifficulty;
+
+  bool _browseMode = false;
+  int _page = 0;
+  List<GameListItem> _results = const [];
 
   static final _topicItems = [
     CategoryTopicItem(
@@ -61,6 +72,11 @@ class _CategoryPageState extends State<CategoryPage> {
   void initState() {
     super.initState();
     _selectedGameType = widget.initialGameType;
+    if (widget.initialGameType != null && widget.initialGameType!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _enterBrowseMode();
+      });
+    }
   }
 
   @override
@@ -69,8 +85,37 @@ class _CategoryPageState extends State<CategoryPage> {
     super.dispose();
   }
 
+  void _enterBrowseMode({String? gameType}) {
+    setState(() {
+      if (gameType != null) _selectedGameType = gameType;
+      _browseMode = true;
+      _page = 0;
+      _results = CatalogCatalog.filter(
+        query: _searchController.text,
+        gameType: _selectedGameType,
+        sort: _selectedSort,
+      );
+    });
+  }
+
+  void _exitBrowseMode() {
+    setState(() {
+      _browseMode = false;
+      _page = 0;
+      _searchController.clear();
+      _selectedCategory = null;
+      _selectedGameType = null;
+      _selectedTime = null;
+      _selectedSort = null;
+      _selectedStatus = null;
+      _selectedPlayers = null;
+      _selectedDifficulty = null;
+      _results = const [];
+    });
+  }
+
   void _applyFilters() {
-    setState(() {});
+    _enterBrowseMode();
   }
 
   void _clearFilters() {
@@ -83,15 +128,39 @@ class _CategoryPageState extends State<CategoryPage> {
       _selectedStatus = null;
       _selectedPlayers = null;
       _selectedDifficulty = null;
+      if (_browseMode) {
+        _page = 0;
+        _results = CatalogCatalog.filter(
+          query: '',
+          gameType: null,
+          sort: null,
+        );
+      }
     });
   }
 
   void _onTopicTap(CategoryTopicItem item, String gameType) {
-    if (gameType == 'quiz') {
-      Navigator.of(context).pushNamed(CatalogRoutes.quizzes);
-      return;
+    // Put a hint of the topic into search for a more "filtered" feel.
+    _searchController.text = item.title;
+    _enterBrowseMode(gameType: gameType);
+  }
+
+  void _openGame(GameListItem game) {
+    String? playerGameId;
+    for (final player in PlayerGamesStore.instance.all) {
+      if (PlayerGameMapper.numericId(player) == game.id) {
+        playerGameId = player.id;
+        break;
+      }
     }
-    setState(() => _selectedGameType = gameType);
+
+    Navigator.of(context).pushNamed(
+      GameRoutes.overview,
+      arguments: GameOverviewArgs.fromListItem(
+        game,
+        playerGameId: playerGameId,
+      ),
+    );
   }
 
   @override
@@ -159,22 +228,63 @@ class _CategoryPageState extends State<CategoryPage> {
                           onClear: _clearFilters,
                         ),
                         const SizedBox(height: 40),
-                        CategoryTopicRow(
-                          title: 'تست ها',
-                          items: _topicItems,
-                          onItemTap: (item) => _onTopicTap(item, 'test'),
-                        ),
-                        const SizedBox(height: 36),
-                        CategoryTopicRow(
-                          title: 'کوئیز ها',
-                          items: _topicItems,
-                          onItemTap: (item) => _onTopicTap(item, 'quiz'),
-                        ),
-                        const SizedBox(height: 36),
-                        CategoryTopicRow(
-                          title: 'نظرسنجی ها',
-                          items: _topicItems,
-                          onItemTap: (item) => _onTopicTap(item, 'vote'),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 420),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
+                          transitionBuilder: (child, animation) {
+                            final offset = Tween<Offset>(
+                              begin: const Offset(0, 0.06),
+                              end: Offset.zero,
+                            ).animate(animation);
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: offset,
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: _browseMode
+                              ? KeyedSubtree(
+                                  key: const ValueKey('browse'),
+                                  child: CatalogResultsGrid(
+                                    games: _results,
+                                    page: _page,
+                                    pageSize: _pageSize,
+                                    onPageChanged: (p) =>
+                                        setState(() => _page = p),
+                                    onGameTap: _openGame,
+                                    onBack: _exitBrowseMode,
+                                  ),
+                                )
+                              : KeyedSubtree(
+                                  key: const ValueKey('topics'),
+                                  child: Column(
+                                    children: [
+                                      CategoryTopicRow(
+                                        title: 'تست ها',
+                                        items: _topicItems,
+                                        onItemTap: (item) =>
+                                            _onTopicTap(item, 'test'),
+                                      ),
+                                      const SizedBox(height: 36),
+                                      CategoryTopicRow(
+                                        title: 'کوئیز ها',
+                                        items: _topicItems,
+                                        onItemTap: (item) =>
+                                            _onTopicTap(item, 'quiz'),
+                                      ),
+                                      const SizedBox(height: 36),
+                                      CategoryTopicRow(
+                                        title: 'نظرسنجی ها',
+                                        items: _topicItems,
+                                        onItemTap: (item) =>
+                                            _onTopicTap(item, 'vote'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                         ),
                       ],
                     ),

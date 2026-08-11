@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/pages/game/models/game_kind.dart';
 import 'package:frontend/pages/game/models/game_session_data.dart';
+import 'package:frontend/pages/game/utils/game_picture_helper.dart';
 import 'package:frontend/pages/game/widgets/game_author_header.dart';
 import 'package:frontend/pages/game/widgets/game_glass_card.dart';
 import 'package:frontend/pages/game/widgets/game_option_widgets.dart';
@@ -366,7 +367,7 @@ class _WorldImageTile extends StatelessWidget {
         children: [
           AspectRatio(
             aspectRatio: 16 / 10,
-            child: Image.asset(image, fit: BoxFit.cover),
+            child: GamePictureHelper.image(picture: image),
           ),
           Positioned(
             left: 0,

@@ -226,7 +226,7 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.chevron_left),
+                      icon: const Icon(Icons.chevron_right),
                       onPressed: _currentPage > 1 ? () => _goToPage(_currentPage - 1) : null,
                     ),
                     GestureDetector(
@@ -272,7 +272,7 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.chevron_right),
+                      icon: const Icon(Icons.chevron_left),
                       onPressed: _currentPage < _totalPages ? () => _goToPage(_currentPage + 1) : null,
                     ),
                   ],

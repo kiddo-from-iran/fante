@@ -10,10 +10,12 @@ Future<String?> pickImageAsDataUrl() async {
 
   html.document.body?.append(input);
 
+  StreamSubscription<html.Event>? changeSub;
+  StreamSubscription<html.Event>? focusSub;
+
   try {
     final selected = Completer<html.File?>();
 
-    late final StreamSubscription<html.Event> changeSub;
     changeSub = input.onChange.listen((_) {
       final files = input.files;
       if (!selected.isCompleted) {
@@ -21,15 +23,27 @@ Future<String?> pickImageAsDataUrl() async {
           files != null && files.isNotEmpty ? files.first : null,
         );
       }
-      changeSub.cancel();
     });
 
     input.click();
+
+    // Cancel detection: OS dialog cancel never fires `change`. After the
+    // window regains focus, treat missing selection as cancel.
+    Future<void>.delayed(const Duration(milliseconds: 250), () {
+      focusSub = html.window.onFocus.listen((_) {
+        Future<void>.delayed(const Duration(milliseconds: 400), () {
+          if (!selected.isCompleted) {
+            selected.complete(null);
+          }
+        });
+      });
+    });
 
     final file = await selected.future.timeout(
       const Duration(minutes: 3),
       onTimeout: () => null,
     );
+
     if (file == null) return null;
 
     final reader = html.FileReader();
@@ -39,6 +53,8 @@ Future<String?> pickImageAsDataUrl() async {
     reader.readAsDataUrl(file);
     return loaded.future;
   } finally {
+    await changeSub?.cancel();
+    await focusSub?.cancel();
     input.remove();
   }
 }

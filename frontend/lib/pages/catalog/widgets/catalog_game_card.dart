@@ -22,64 +22,93 @@ class CatalogGameCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Container(
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.surfaceCard.withValues(alpha: 0.9),
+            color: AppColors.surfaceCard.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppColors.cardBorder),
           ),
-          clipBehavior: Clip.antiAlias,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: GamePictureHelper.image(
-                  picture: game.picture,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      GamePictureHelper.image(
+                        picture: game.picture,
+                        fit: BoxFit.cover,
                       ),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondaryPurple,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        gameTypeLabel(game.gameType),
-                        style: AppTextTheme.getTextStyle(
-                          fontSize: 11,
-                          color: AppColors.textLight,
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondaryPurple,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            gameTypeLabel(game.gameType),
+                            style: AppTextTheme.getTextStyle(
+                              fontSize: 10,
+                              color: AppColors.textLight,
+                            ),
+                          ),
                         ),
                       ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                game.title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextTheme.getTextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textLight,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${game.questionsCount} سوال · ${game.rating.toStringAsFixed(1)} ⭐',
+                textAlign: TextAlign.center,
+                style: AppTextTheme.getTextStyle(
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 34,
+                child: OutlinedButton(
+                  onPressed: onTap,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryGold,
+                    side: const BorderSide(color: AppColors.primaryGold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      game.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextTheme.getTextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textLight,
-                        height: 1.4,
-                      ),
+                    padding: EdgeInsets.zero,
+                  ),
+                  child: Text(
+                    'مشاهده',
+                    style: AppTextTheme.getTextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.primaryGold,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${game.questionsCount} سوال · ${game.rating.toStringAsFixed(1)} ⭐',
-                      style: AppTextTheme.getTextStyle(
-                        fontSize: 12,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ],

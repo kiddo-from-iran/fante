@@ -7,6 +7,7 @@ import 'package:frontend/pages/dashboard/widgets/dashboard_shell.dart';
 import 'package:frontend/pages/game/models/game_kind.dart';
 import 'package:frontend/theme/app_colors.dart';
 import 'package:frontend/theme/text_theme.dart';
+import 'package:frontend/utils/jalali_date.dart';
 import 'package:frontend/widgets/toast/app_toast.dart';
 
 class DashboardGamesPage extends StatefulWidget {
@@ -351,8 +352,7 @@ class _GameRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final date =
-        '${game.createdAt.year}/${game.createdAt.month.toString().padLeft(2, '0')}/${game.createdAt.day.toString().padLeft(2, '0')}';
+    final date = JalaliDate.format(game.createdAt);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),

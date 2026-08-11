@@ -14,4 +14,8 @@ class GameAssets {
 
   static const designerAvatar = 'assets/images/profile_3.png';
   static const socialMedia = 'assets/images/social_media.png';
+
+  static const resultGood = 'assets/images/results/result_good.png';
+  static const resultOk = 'assets/images/results/result_ok.png';
+  static const resultSad = 'assets/images/results/result_sad.png';
 }

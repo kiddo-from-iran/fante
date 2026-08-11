@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/pages/game/game_assets.dart';
 import 'package:frontend/pages/game/models/game_session_data.dart';
-import 'package:frontend/pages/game/widgets/game_glass_card.dart';
+import 'package:frontend/pages/game/utils/game_picture_helper.dart';
 import 'package:frontend/theme/app_colors.dart';
 import 'package:frontend/theme/text_theme.dart';
 
@@ -55,6 +55,7 @@ class GameAuthorHeader extends StatelessWidget {
   }
 }
 
+/// Game-info card matching the overview mock: cover, title, quote, meta, actions.
 class GameSidebar extends StatelessWidget {
   const GameSidebar({
     super.key,
@@ -65,64 +66,82 @@ class GameSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GameGlassCard(
-      padding: const EdgeInsets.all(18),
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xE6121212),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.65)),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  data.description,
+          AspectRatio(
+            aspectRatio: 16 / 10,
+            child: GamePictureHelper.image(picture: data.thumbnail),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  data.secondaryTitle,
+                  textAlign: TextAlign.right,
                   style: AppTextTheme.getTextStyle(
-                    fontSize: 11,
-                    color: AppColors.textSecondary,
-                    height: 1.5,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textLight,
+                    height: 1.45,
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  data.thumbnail,
-                  width: 72,
-                  height: 72,
-                  fit: BoxFit.cover,
+                const SizedBox(height: 10),
+                Text(
+                  '«${data.description}»',
+                  textAlign: TextAlign.right,
+                  style: AppTextTheme.getTextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                    height: 1.65,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            '${data.timeAgo} · ${data.participants} شرکت‌کننده',
-            style: AppTextTheme.getTextStyle(
-              fontSize: 11,
-              color: AppColors.textMuted,
+                const SizedBox(height: 10),
+                Text(
+                  '${data.timeAgo} - ${data.participants} شرکت کننده',
+                  textAlign: TextAlign.right,
+                  style: AppTextTheme.getTextStyle(
+                    fontSize: 11,
+                    color: AppColors.textMuted.withValues(alpha: 0.85),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const _SidebarAction(
+                  icon: Icons.add,
+                  label: 'افزودن به کتابخانه',
+                ),
+                const _SidebarAction(
+                  icon: Icons.chat_bubble_outline,
+                  label: 'بحث و گفتگو',
+                ),
+                const _SidebarAction(
+                  icon: Icons.person_outline,
+                  label: 'دنبال کردن طراح',
+                ),
+                const _SidebarAction(
+                  icon: Icons.link,
+                  label: 'اشتراک‌گذاری',
+                ),
+                const SizedBox(height: 14),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Image.asset(
+                    GameAssets.socialMedia,
+                    height: 28,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            data.secondaryTitle,
-            style: AppTextTheme.getTextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textLight,
-            ),
-          ),
-          const SizedBox(height: 14),
-          const _SidebarAction(icon: Icons.add, label: 'افزودن به کتابخانه'),
-          const _SidebarAction(icon: Icons.chat_bubble_outline, label: 'بحث و گفتگو'),
-          const _SidebarAction(icon: Icons.person_outline, label: 'دنبال کردن طراح'),
-          const _SidebarAction(icon: Icons.link, label: 'اشتراک‌گذاری'),
-          const SizedBox(height: 16),
-          Image.asset(
-            GameAssets.socialMedia,
-            height: 24,
-            fit: BoxFit.contain,
-            alignment: Alignment.centerRight,
           ),
         ],
       ),
@@ -142,16 +161,17 @@ class _SidebarAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: AppColors.textLight),
-          const SizedBox(width: 8),
+          Icon(icon, size: 18, color: AppColors.textLight),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               label,
+              textAlign: TextAlign.right,
               style: AppTextTheme.getTextStyle(
-                fontSize: 12,
+                fontSize: 13,
                 color: AppColors.textLight,
               ),
             ),

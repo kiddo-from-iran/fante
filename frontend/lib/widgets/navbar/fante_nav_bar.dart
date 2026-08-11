@@ -29,6 +29,7 @@ class FanteNavBar extends StatelessWidget {
     (label: 'نظرسنجی‌ها', route: null, args: null),
     (label: 'کوییزها', route: CatalogRoutes.quizzes, args: null),
     (label: 'تست‌ها', route: CatalogRoutes.category, args: 'test'),
+    (label: 'دسته‌بندی', route: CatalogRoutes.category, args: null),
   ];
 
   @override

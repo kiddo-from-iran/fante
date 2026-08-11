@@ -8,11 +8,13 @@ class QuizCarouselItem {
     required this.id,
     required this.title,
     required this.image,
+    this.playerGameId,
   });
 
   final int id;
   final String title;
   final String image;
+  final String? playerGameId;
 }
 
 class QuizCarouselSection extends StatefulWidget {
@@ -101,15 +103,15 @@ class _QuizCarouselSectionState extends State<QuizCarouselSection> {
                 Positioned(
                   left: 0,
                   child: _CarouselArrow(
-                    icon: Icons.chevron_left_rounded,
-                    onPressed: () => _scrollBy(_cardSize + _gap),
+                    icon: Icons.chevron_right_rounded,
+                    onPressed: () => _scrollBy(-(_cardSize + _gap)),
                   ),
                 ),
                 Positioned(
                   right: 0,
                   child: _CarouselArrow(
-                    icon: Icons.chevron_right_rounded,
-                    onPressed: () => _scrollBy(-(_cardSize + _gap)),
+                    icon: Icons.chevron_left_rounded,
+                    onPressed: () => _scrollBy(_cardSize + _gap),
                   ),
                 ),
               ],
@@ -194,15 +196,15 @@ class _CreatorsCarouselSectionState extends State<CreatorsCarouselSection> {
                 Positioned(
                   left: 0,
                   child: _CarouselArrow(
-                    icon: Icons.chevron_left_rounded,
-                    onPressed: () => _scrollBy(_step),
+                    icon: Icons.chevron_right_rounded,
+                    onPressed: () => _scrollBy(-_step),
                   ),
                 ),
                 Positioned(
                   right: 0,
                   child: _CarouselArrow(
-                    icon: Icons.chevron_right_rounded,
-                    onPressed: () => _scrollBy(-_step),
+                    icon: Icons.chevron_left_rounded,
+                    onPressed: () => _scrollBy(_step),
                   ),
                 ),
               ],

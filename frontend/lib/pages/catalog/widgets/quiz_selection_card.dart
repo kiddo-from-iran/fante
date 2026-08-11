@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/pages/game/utils/game_picture_helper.dart';
 import 'package:frontend/theme/app_colors.dart';
 import 'package:frontend/theme/text_theme.dart';
 
@@ -30,9 +31,8 @@ class QuizSelectionCard extends StatelessWidget {
           Expanded(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(10),
-              child: Image.asset(
-                image,
-                fit: BoxFit.cover,
+              child: GamePictureHelper.image(
+                picture: image,
                 width: double.infinity,
               ),
             ),

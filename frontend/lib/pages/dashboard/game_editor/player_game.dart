@@ -12,6 +12,7 @@ class PlayerGame {
     required this.kind,
     required this.createdAt,
     this.imagePath,
+    this.playBackgroundPath,
     List<GameResultDraft>? results,
     this.questions = const [],
     this.isPublished = false,
@@ -22,7 +23,13 @@ class PlayerGame {
   String description;
   GameKind kind;
   DateTime createdAt;
+
+  /// Cover image — game card + overview background.
   String? imagePath;
+
+  /// Background shown behind question forms while playing.
+  String? playBackgroundPath;
+
   List<GameResultDraft> results;
   List<GameQuestionDraft> questions;
   bool isPublished;
@@ -73,6 +80,7 @@ class PlayerGame {
       kind: kind,
       createdAt: createdAt,
       imagePath: imagePath,
+      playBackgroundPath: playBackgroundPath,
       isPublished: isPublished,
       results: resultsOrEmpty.map((r) => r.copy()).toList(),
       questions: questions.map((q) => q.copy()).toList(),
@@ -182,6 +190,12 @@ class PlayerGamesStore {
       game.ensureResults();
     }
     return List.unmodifiable(_games);
+  }
+
+  List<PlayerGame> published({GameKind? kind}) {
+    return all
+        .where((g) => g.isPublished && (kind == null || g.kind == kind))
+        .toList();
   }
 
   void upsert(PlayerGame game) {

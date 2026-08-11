@@ -85,33 +85,46 @@ class _ActivitySummaryCard extends StatelessWidget {
     return DashboardCard(
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= 720;
-
-          final rightSide = Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: const [
-              _StatsPanel(),
-              SizedBox(height: 16),
-              _BadgesAndActionsRow(),
-            ],
-          );
+          final isWide = constraints.maxWidth >= 900;
 
           if (!isWide) {
-            return Column(
+            return const Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const _ProfileMini(),
-                const SizedBox(height: 16),
-                rightSide,
+                _ProfileMini(),
+                SizedBox(height: 16),
+                _StatsPanel(),
+                SizedBox(height: 16),
+                _LatestBadgesPanel(),
+                SizedBox(height: 16),
+                _QuickActionsPanel(),
               ],
             );
           }
 
-          return Row(
+          // RTL right→left: profile, then (stats on top of badges + quick actions).
+          return const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: rightSide),
-              const SizedBox(width: 20),
-              const _ProfileMini(),
+              _ProfileMini(),
+              SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _StatsPanel(),
+                    SizedBox(height: 16),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 5, child: _LatestBadgesPanel()),
+                        SizedBox(width: 16),
+                        Expanded(flex: 4, child: _QuickActionsPanel()),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ],
           );
         },
@@ -284,13 +297,13 @@ class _ProfileMini extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 200,
+      width: 220,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Center(
             child: CircleAvatar(
-              radius: 48,
+              radius: 52,
               backgroundColor: AppColors.surfaceCard,
               backgroundImage: AssetImage(DashboardAssets.avatar),
             ),
@@ -360,36 +373,6 @@ class _ProfileMini extends StatelessWidget {
 // ===========================================================================
 // Latest badges + quick actions (inner panels of the summary card)
 // ===========================================================================
-
-class _BadgesAndActionsRow extends StatelessWidget {
-  const _BadgesAndActionsRow();
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 520) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: const [
-              _QuickActionsPanel(),
-              SizedBox(height: 16),
-              _LatestBadgesPanel(),
-            ],
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Expanded(flex: 4, child: _QuickActionsPanel()),
-            SizedBox(width: 16),
-            Expanded(flex: 5, child: _LatestBadgesPanel()),
-          ],
-        );
-      },
-    );
-  }
-}
 
 class _LatestBadgesPanel extends StatelessWidget {
   const _LatestBadgesPanel();

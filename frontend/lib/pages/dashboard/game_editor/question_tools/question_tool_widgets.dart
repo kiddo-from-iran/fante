@@ -1,9 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:frontend/pages/dashboard/game_editor/question_tools/image_pick_helper.dart';
 import 'package:frontend/pages/dashboard/game_editor/question_tools/option_score_dialog.dart';
 import 'package:frontend/pages/dashboard/game_editor/question_tools/question_tool_models.dart';
+import 'package:frontend/pages/game/utils/game_picture_helper.dart';
 import 'package:frontend/theme/app_colors.dart';
 import 'package:frontend/theme/text_theme.dart';
 import 'package:frontend/widgets/toast/app_toast.dart';
@@ -133,7 +132,7 @@ class _ScoreButton extends StatelessWidget {
 }
 
 /// Multiple-choice options tool — add as many option fields as needed.
-class MultipleChoiceToolWidget extends StatelessWidget {
+class MultipleChoiceToolWidget extends StatefulWidget {
   const MultipleChoiceToolWidget({
     super.key,
     required this.block,
@@ -148,11 +147,24 @@ class MultipleChoiceToolWidget extends StatelessWidget {
   final VoidCallback onRemove;
 
   @override
+  State<MultipleChoiceToolWidget> createState() =>
+      _MultipleChoiceToolWidgetState();
+}
+
+class _MultipleChoiceToolWidgetState extends State<MultipleChoiceToolWidget> {
+  QuestionToolBlock get block => widget.block;
+
+  void _notify() {
+    setState(() {});
+    widget.onChanged();
+  }
+
+  @override
   Widget build(BuildContext context) {
     block.ensureScoreSlots();
     return QuestionToolShell(
       title: QuestionToolKind.multipleChoice.label,
-      onRemove: onRemove,
+      onRemove: widget.onRemove,
       child: Column(
         children: [
           for (var i = 0; i < block.options.length; i++) ...[
@@ -160,11 +172,10 @@ class MultipleChoiceToolWidget extends StatelessWidget {
               children: [
                 Expanded(
                   child: TextFormField(
-                    key: ValueKey('${block.id}-opt-$i'),
+                    key: ValueKey('${block.id}-opt-$i-${block.options.length}'),
                     initialValue: block.options[i],
                     onChanged: (v) {
                       block.options[i] = v;
-                      onChanged();
                     },
                     cursorColor: AppColors.primaryGold,
                     style: AppTextTheme.getTextStyle(
@@ -185,15 +196,15 @@ class MultipleChoiceToolWidget extends StatelessWidget {
                     choiceLabel: block.options[i].trim().isEmpty
                         ? 'گزینه ${i + 1}'
                         : block.options[i],
-                    results: results,
-                    onChanged: onChanged,
+                    results: widget.results,
+                    onChanged: _notify,
                   ),
                 ),
                 if (block.options.length > 2)
                   IconButton(
                     onPressed: () {
                       block.removeChoiceAt(i);
-                      onChanged();
+                      _notify();
                     },
                     icon: const Icon(
                       Icons.remove_circle_outline,
@@ -207,7 +218,7 @@ class MultipleChoiceToolWidget extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: OptionScoreSummary(
                 scores: block.scoresFor(i),
-                results: results,
+                results: widget.results,
               ),
             ),
             const SizedBox(height: 10),
@@ -217,7 +228,7 @@ class MultipleChoiceToolWidget extends StatelessWidget {
             child: TextButton.icon(
               onPressed: () {
                 block.addChoice();
-                onChanged();
+                _notify();
               },
               icon: const Icon(Icons.add, size: 18, color: AppColors.primaryGold),
               label: Text(
@@ -257,13 +268,18 @@ class MultipleChoiceImageToolWidget extends StatefulWidget {
 
 class _MultipleChoiceImageToolWidgetState
     extends State<MultipleChoiceImageToolWidget> {
-  bool _picking = false;
+  int? _pickingIndex;
 
   QuestionToolBlock get block => widget.block;
 
+  void _notify() {
+    setState(() {});
+    widget.onChanged();
+  }
+
   Future<void> _pickImage(int index) async {
-    if (_picking) return;
-    setState(() => _picking = true);
+    if (_pickingIndex != null) return;
+    setState(() => _pickingIndex = index);
     try {
       final dataUrl = await pickImageAsDataUrl();
       if (!mounted) return;
@@ -279,7 +295,7 @@ class _MultipleChoiceImageToolWidgetState
         AppToast.error(context, 'خطا در باز کردن پنجره انتخاب تصویر');
       }
     } finally {
-      if (mounted) setState(() => _picking = false);
+      if (mounted) setState(() => _pickingIndex = null);
     }
   }
 
@@ -305,11 +321,11 @@ class _MultipleChoiceImageToolWidgetState
             tileColumns: block.tileColumns,
             onLayoutChanged: (layout) {
               block.imageLayout = layout;
-              widget.onChanged();
+              _notify();
             },
             onColumnsChanged: (cols) {
               block.tileColumns = cols;
-              widget.onChanged();
+              _notify();
             },
           ),
           const SizedBox(height: 14),
@@ -323,7 +339,7 @@ class _MultipleChoiceImageToolWidgetState
             child: TextButton.icon(
               onPressed: () {
                 block.addChoice();
-                widget.onChanged();
+                _notify();
               },
               icon: const Icon(Icons.add, size: 18, color: AppColors.primaryGold),
               label: Text(
@@ -351,18 +367,19 @@ class _MultipleChoiceImageToolWidgetState
                   ? block.optionImages[i]
                   : null,
               size: 72,
-              busy: _picking,
+              busy: _pickingIndex == i,
               onTap: () => _pickImage(i),
               onClear: () => _clearImage(i),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: TextFormField(
-                key: ValueKey('${block.id}-img-opt-$i'),
+                key: ValueKey(
+                  '${block.id}-img-opt-$i-${block.options.length}',
+                ),
                 initialValue: block.options[i],
                 onChanged: (v) {
                   block.options[i] = v;
-                  widget.onChanged();
                 },
                 cursorColor: AppColors.primaryGold,
                 style: AppTextTheme.getTextStyle(
@@ -384,14 +401,14 @@ class _MultipleChoiceImageToolWidgetState
                     ? 'گزینه تصویری ${i + 1}'
                     : block.options[i],
                 results: widget.results,
-                onChanged: widget.onChanged,
+                onChanged: _notify,
               ),
             ),
             if (block.options.length > 2)
               IconButton(
                 onPressed: () {
                   block.removeChoiceAt(i);
-                  widget.onChanged();
+                  _notify();
                 },
                 icon: const Icon(
                   Icons.remove_circle_outline,
@@ -450,7 +467,7 @@ class _MultipleChoiceImageToolWidgetState
                               ? block.optionImages[i]
                               : null,
                           size: double.infinity,
-                          busy: _picking,
+                          busy: _pickingIndex == i,
                           onTap: () => _pickImage(i),
                           onClear: () => _clearImage(i),
                           expand: true,
@@ -458,11 +475,12 @@ class _MultipleChoiceImageToolWidgetState
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
-                        key: ValueKey('${block.id}-tile-opt-$i'),
+                        key: ValueKey(
+                          '${block.id}-tile-opt-$i-${block.options.length}',
+                        ),
                         initialValue: block.options[i],
                         onChanged: (v) {
                           block.options[i] = v;
-                          widget.onChanged();
                         },
                         cursorColor: AppColors.primaryGold,
                         textAlign: TextAlign.center,
@@ -492,14 +510,14 @@ class _MultipleChoiceImageToolWidgetState
                                   ? 'گزینه تصویری ${i + 1}'
                                   : block.options[i],
                               results: widget.results,
-                              onChanged: widget.onChanged,
+                              onChanged: _notify,
                             ),
                           ),
                           if (block.options.length > 2)
                             IconButton(
                               onPressed: () {
                                 block.removeChoiceAt(i);
-                                widget.onChanged();
+                                _notify();
                               },
                               icon: const Icon(
                                 Icons.remove_circle_outline,
@@ -662,23 +680,7 @@ class _ImageUploadSlot extends StatelessWidget {
   Widget? _image() {
     final data = imageData;
     if (data == null || data.isEmpty) return null;
-    if (data.startsWith('data:')) {
-      final comma = data.indexOf(',');
-      if (comma < 0) return null;
-      try {
-        final bytes = base64Decode(data.substring(comma + 1));
-        return Image.memory(bytes, fit: BoxFit.cover);
-      } catch (_) {
-        return null;
-      }
-    }
-    if (data.startsWith('http') || data.startsWith('blob:')) {
-      return Image.network(data, fit: BoxFit.cover);
-    }
-    if (data.startsWith('assets/')) {
-      return Image.asset(data, fit: BoxFit.cover);
-    }
-    return null;
+    return GamePictureHelper.image(picture: data);
   }
 
   @override

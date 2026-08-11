@@ -129,6 +129,8 @@ class GameOptionTile extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(10),
+          splashColor: AppColors.primaryGold.withValues(alpha: 0.12),
+          highlightColor: AppColors.primaryGold.withValues(alpha: 0.06),
           child: Ink(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -141,14 +143,6 @@ class GameOptionTile extends StatelessWidget {
                     : AppColors.cardBorder,
                 width: selected ? 1.5 : 1,
               ),
-              boxShadow: selected
-                  ? [
-                      BoxShadow(
-                        color: AppColors.primaryGold.withValues(alpha: 0.3),
-                        blurRadius: 10,
-                      ),
-                    ]
-                  : null,
             ),
             child: Text(
               label,

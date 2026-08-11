@@ -57,12 +57,16 @@ class QuizPlayData extends GameSessionData {
     required this.question,
     required this.options,
     this.selectedIndex = 1,
+    this.correctIndex,
   }) : super(kind: GameKind.quiz);
 
   final int questionNumber;
   final String question;
   final List<String> options;
   final int selectedIndex;
+
+  /// Designated correct option for quizzes; null means no right/wrong.
+  final int? correctIndex;
 }
 
 class PollPlayData extends GameSessionData {

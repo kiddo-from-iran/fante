@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/data/repository/game_repository.dart';
 import 'package:frontend/models/game_model.dart';
+import 'package:frontend/pages/dashboard/game_editor/player_game.dart';
 import 'package:frontend/pages/game/game_routes.dart';
 import 'package:frontend/pages/game/models/game_kind.dart';
 import 'package:frontend/pages/game/overview/game_overview_args.dart';
 import 'package:frontend/pages/game/utils/game_picture_helper.dart';
+import 'package:frontend/pages/game/utils/player_game_mapper.dart';
 import 'package:frontend/pages/home/home_assets.dart';
 import 'package:frontend/theme/app_colors.dart';
 import 'package:frontend/theme/text_theme.dart';
@@ -32,7 +34,14 @@ class _GameOverviewPageState extends State<GameOverviewPage> {
   @override
   void initState() {
     super.initState();
-    _gameFuture = gameRepository.getGameWithFallback(widget.args.gameId);
+    final playerId = widget.args.playerGameId;
+    final playerGame =
+        playerId == null ? null : PlayerGamesStore.instance.byId(playerId);
+    if (playerGame != null) {
+      _gameFuture = Future.value(PlayerGameMapper.toDetail(playerGame));
+    } else {
+      _gameFuture = gameRepository.getGameWithFallback(widget.args.gameId);
+    }
     _galleryController = PageController(viewportFraction: 0.32);
   }
 
@@ -50,9 +59,19 @@ class _GameOverviewPageState extends State<GameOverviewPage> {
         backgroundColor: AppColors.backgroundDark,
         body: FutureBuilder<GameDetail>(
           future: _gameFuture,
-          initialData: widget.args.preview != null
-              ? GameDetail.fromListItem(widget.args.preview!)
-              : GameDetail.fromListItem(GameListItem.demoGames.first),
+          initialData: () {
+            final playerId = widget.args.playerGameId;
+            final playerGame = playerId == null
+                ? null
+                : PlayerGamesStore.instance.byId(playerId);
+            if (playerGame != null) {
+              return PlayerGameMapper.toDetail(playerGame);
+            }
+            if (widget.args.preview != null) {
+              return GameDetail.fromListItem(widget.args.preview!);
+            }
+            return GameDetail.fromListItem(GameListItem.demoGames.first);
+          }(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting &&
                 snapshot.data == null) {
@@ -74,9 +93,9 @@ class _GameOverviewPageState extends State<GameOverviewPage> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black.withValues(alpha: 0.28),
-                        Colors.black.withValues(alpha: 0.48),
-                        Colors.black.withValues(alpha: 0.78),
+                        Colors.black.withValues(alpha: 0.22),
+                        Colors.black.withValues(alpha: 0.42),
+                        Colors.black.withValues(alpha: 0.68),
                       ],
                       stops: const [0.0, 0.42, 1.0],
                     ),
@@ -86,106 +105,142 @@ class _GameOverviewPageState extends State<GameOverviewPage> {
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final isWide = constraints.maxWidth >= 900;
-                      final horizontal = isWide ? 72.0 : 24.0;
+                      final outerH = isWide ? 48.0 : 20.0;
+                      final outerTop = isWide ? 28.0 : 16.0;
+                      final outerBottom = isWide ? 28.0 : 18.0;
+                      final innerPad = isWide ? 28.0 : 16.0;
+                      final boxMaxWidth = isWide ? 1280.0 : constraints.maxWidth;
+                      final availableHeight =
+                          constraints.maxHeight - outerTop - outerBottom;
+                      // Shorter panel, parked near the bottom of the screen.
+                      final boxHeight = availableHeight * (isWide ? 0.72 : 0.82);
 
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.fromLTRB(
-                              horizontal,
-                              isWide ? 28 : 16,
-                              horizontal,
-                              0,
-                            ),
-                            child: _OverviewTopBar(
-                              onBack: () => Navigator.of(context).pop(),
-                            ),
-                          ),
-                          Expanded(
-                            child: SingleChildScrollView(
-                              padding: EdgeInsets.fromLTRB(
-                                horizontal,
-                                isWide ? 48 : 28,
-                                horizontal,
-                                28,
-                              ),
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  minHeight: constraints.maxHeight -
-                                      (isWide ? 120 : 90),
+                      return Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          outerH,
+                          outerTop,
+                          outerH,
+                          outerBottom,
+                        ),
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: SizedBox(
+                            width: boxMaxWidth,
+                            height: boxHeight,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.58),
+                                borderRadius: BorderRadius.circular(28),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.08),
                                 ),
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    if (isWide)
-                                      Row(
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Padding(
+                                    padding: EdgeInsets.fromLTRB(
+                                      innerPad,
+                                      isWide ? 14 : 10,
+                                      innerPad,
+                                      0,
+                                    ),
+                                    child: _OverviewTopBar(
+                                      onBack: () =>
+                                          Navigator.of(context).pop(),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: SingleChildScrollView(
+                                      padding: EdgeInsets.fromLTRB(
+                                        innerPad,
+                                        isWide ? 16 : 12,
+                                        innerPad,
+                                        isWide ? 16 : 12,
+                                      ),
+                                      child: Column(
                                         crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                            CrossAxisAlignment.stretch,
                                         children: [
-                                          Expanded(
-                                            flex: 11,
-                                            child: _OverviewHeader(game: game),
+                                          if (isWide)
+                                            Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Expanded(
+                                                  flex: 11,
+                                                  child: _OverviewHeader(
+                                                    game: game,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 32),
+                                                Expanded(
+                                                  flex: 10,
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                      top: 8,
+                                                    ),
+                                                    child: _OverviewStats(
+                                                      game: game,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            )
+                                          else ...[
+                                            _OverviewHeader(game: game),
+                                            const SizedBox(height: 20),
+                                            _OverviewStats(game: game),
+                                          ],
+                                          SizedBox(height: isWide ? 24 : 18),
+                                          _GallerySection(
+                                            images: _galleryImages(game),
+                                            controller: _galleryController,
+                                            onPrevious: _showPreviousImage,
+                                            onNext: _showNextImage,
+                                            onPageChanged: (index) {
+                                              setState(
+                                                () => _galleryIndex = index,
+                                              );
+                                            },
                                           ),
-                                          const SizedBox(width: 40),
-                                          Expanded(
-                                            flex: 10,
-                                            child: Padding(
-                                              padding: const EdgeInsets.only(
-                                                top: 12,
-                                              ),
-                                              child: _OverviewStats(game: game),
-                                            ),
+                                          SizedBox(height: isWide ? 24 : 16),
+                                          Divider(
+                                            color: AppColors.textLight
+                                                .withValues(alpha: 0.85),
+                                            thickness: 1,
+                                            height: 1,
+                                          ),
+                                          const SizedBox(height: 14),
+                                          _OverviewActions(
+                                            isFavorite: _isFavorite,
+                                            onStart: () =>
+                                                _startGame(context, game),
+                                            onShare: () => _shareGame(game),
+                                            onFavorite: () {
+                                              setState(
+                                                () =>
+                                                    _isFavorite = !_isFavorite,
+                                              );
+                                              AppToast.success(
+                                                context,
+                                                _isFavorite
+                                                    ? 'به علاقه‌مندی‌ها اضافه شد'
+                                                    : 'از علاقه‌مندی‌ها حذف شد',
+                                              );
+                                            },
                                           ),
                                         ],
-                                      )
-                                    else ...[
-                                      _OverviewHeader(game: game),
-                                      const SizedBox(height: 28),
-                                      _OverviewStats(game: game),
-                                    ],
-                                    SizedBox(height: isWide ? 44 : 32),
-                                    _GallerySection(
-                                      images: _galleryImages(game),
-                                      controller: _galleryController,
-                                      onPrevious: _showPreviousImage,
-                                      onNext: _showNextImage,
-                                      onPageChanged: (index) {
-                                        setState(() => _galleryIndex = index);
-                                      },
+                                      ),
                                     ),
-                                    SizedBox(height: isWide ? 40 : 28),
-                                    Divider(
-                                      color: AppColors.textLight
-                                          .withValues(alpha: 0.85),
-                                      thickness: 1,
-                                      height: 1,
-                                    ),
-                                    const SizedBox(height: 20),
-                                    _OverviewActions(
-                                      isFavorite: _isFavorite,
-                                      onStart: () =>
-                                          _startGame(context, game),
-                                      onShare: () => _shareGame(game),
-                                      onFavorite: () {
-                                        setState(
-                                          () => _isFavorite = !_isFavorite,
-                                        );
-                                        AppToast.success(
-                                          context,
-                                          _isFavorite
-                                              ? 'به علاقه‌مندی‌ها اضافه شد'
-                                              : 'از علاقه‌مندی‌ها حذف شد',
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        ],
+                        ),
                       );
                     },
                   ),
@@ -242,6 +297,20 @@ class _GameOverviewPageState extends State<GameOverviewPage> {
   }
 
   void _startGame(BuildContext context, GameDetail game) {
+    final playerId = widget.args.playerGameId;
+    final playerGame =
+        playerId == null ? null : PlayerGamesStore.instance.byId(playerId);
+
+    if (playerGame != null) {
+      final route = switch (playerGame.kind) {
+        GameKind.poll => GameRoutes.playPoll,
+        GameKind.personality => GameRoutes.playQuiz,
+        GameKind.quiz => GameRoutes.playQuiz,
+      };
+      Navigator.of(context).pushNamed(route, arguments: playerGame);
+      return;
+    }
+
     final route = switch (game.kind) {
       GameKind.poll => GameRoutes.playPoll,
       GameKind.personality => GameRoutes.playQuiz,
@@ -318,7 +387,7 @@ class _OverviewHeader extends StatelessWidget {
         Text(
           title,
           style: AppTextTheme.getTextStyle(
-            fontSize: 36,
+            fontSize: 28,
             fontWeight: FontWeight.bold,
             color: AppColors.primaryGold,
             height: 1.25,
@@ -505,7 +574,7 @@ class _GallerySection extends StatelessWidget {
     return Directionality(
       textDirection: TextDirection.ltr,
       child: SizedBox(
-        height: 188,
+        height: 152,
         child: Row(
           children: [
             _GalleryArrow(
@@ -525,7 +594,7 @@ class _GallerySection extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       child: GamePictureHelper.image(
                         picture: images[index],
-                        height: 188,
+                        height: 152,
                       ),
                     ),
                   );
@@ -600,20 +669,30 @@ class _OverviewActions extends StatelessWidget {
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 720;
 
-        final secondaryActions = [
-          _SecondaryActionButton(
-            label: 'اشتراک گذاری',
-            onPressed: onShare,
-          ),
-          _SecondaryActionButton(
-            label: isFavorite
-                ? 'حذف از علاقه‌مندی‌ها'
-                : 'افزودن به مورد علاقه ها',
-            onPressed: onFavorite,
-          ),
-        ];
+        final iconActions = Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _IconActionButton(
+              icon: Icons.share_rounded,
+              tooltip: 'اشتراک‌گذاری',
+              onPressed: onShare,
+            ),
+            const SizedBox(width: 10),
+            _IconActionButton(
+              icon: isFavorite
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
+              tooltip: isFavorite
+                  ? 'حذف از علاقه‌مندی‌ها'
+                  : 'افزودن به علاقه‌مندی‌ها',
+              onPressed: onFavorite,
+              active: isFavorite,
+            ),
+          ],
+        );
 
         final startButton = SizedBox(
+          width: isCompact ? double.infinity : 280,
           height: 50,
           child: ElevatedButton(
             onPressed: onStart,
@@ -621,7 +700,7 @@ class _OverviewActions extends StatelessWidget {
               backgroundColor: AppColors.primaryGold,
               foregroundColor: AppColors.textBlack,
               elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 48),
+              padding: const EdgeInsets.symmetric(horizontal: 56),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -643,11 +722,9 @@ class _OverviewActions extends StatelessWidget {
             children: [
               startButton,
               const SizedBox(height: 12),
-              ...secondaryActions.map(
-                (button) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: button,
-                ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: iconActions,
               ),
             ],
           );
@@ -656,16 +733,8 @@ class _OverviewActions extends StatelessWidget {
         return Row(
           children: [
             startButton,
-            Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  secondaryActions[0],
-                  const SizedBox(width: 12),
-                  secondaryActions[1],
-                ],
-              ),
-            ),
+            const Spacer(),
+            iconActions,
           ],
         );
       },
@@ -673,38 +742,46 @@ class _OverviewActions extends StatelessWidget {
   }
 }
 
-class _SecondaryActionButton extends StatelessWidget {
-  const _SecondaryActionButton({
-    required this.label,
+class _IconActionButton extends StatelessWidget {
+  const _IconActionButton({
+    required this.icon,
+    required this.tooltip,
     required this.onPressed,
+    this.active = false,
   });
 
-  final String label;
+  final IconData icon;
+  final String tooltip;
   final VoidCallback onPressed;
+  final bool active;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 50,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.textLight,
-          backgroundColor: Colors.black.withValues(alpha: 0.72),
-          side: BorderSide(
-            color: AppColors.textLight.withValues(alpha: 0.18),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-        child: Text(
-          label,
-          style: AppTextTheme.getTextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textLight,
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: 50,
+            height: 50,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.72),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: active
+                    ? AppColors.primaryGold
+                    : AppColors.textLight.withValues(alpha: 0.18),
+              ),
+            ),
+            child: Icon(
+              icon,
+              size: 22,
+              color: active ? AppColors.primaryGold : AppColors.textLight,
+            ),
           ),
         ),
       ),

@@ -3,6 +3,7 @@ import 'package:frontend/pages/game/models/game_session_data.dart';
 import 'package:frontend/pages/game/widgets/game_author_header.dart';
 import 'package:frontend/pages/game/widgets/game_glass_card.dart';
 import 'package:frontend/pages/game/widgets/game_option_widgets.dart';
+import 'package:frontend/pages/game/widgets/game_play_below_section.dart';
 import 'package:frontend/pages/game/widgets/game_scaffold.dart';
 import 'package:frontend/theme/app_colors.dart';
 import 'package:frontend/theme/text_theme.dart';
@@ -21,8 +22,9 @@ class GamePlayPage extends StatelessWidget {
     return GameScaffold(
       backgroundAsset: data.background,
       child: GameSessionLayout(
-        main: _PlayMainCard(data: data),
         sidebar: GameSidebar(data: data.sidebar),
+        main: _PlayMainCard(data: data),
+        footer: const GamePlayBelowSection(),
       ),
     );
   }
@@ -104,7 +106,10 @@ class _QuizPlayViewState extends State<QuizPlayView> {
           return GameOptionTile(
             label: data.options[index],
             selected: _selectedIndex == index,
-            onTap: () => setState(() => _selectedIndex = index),
+            onTap: () {
+              if (_selectedIndex == index) return;
+              setState(() => _selectedIndex = index);
+            },
           );
         }),
       ],
@@ -153,7 +158,10 @@ class _PollPlayViewState extends State<PollPlayView> {
             option: option,
             highlighted: _selectedIndex == index,
             showPercent: data.showPercentages,
-            onTap: () => setState(() => _selectedIndex = index),
+            onTap: () {
+              if (_selectedIndex == index) return;
+              setState(() => _selectedIndex = index);
+            },
           );
         }),
         const SizedBox(height: 12),

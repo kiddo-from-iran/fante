@@ -3,11 +3,13 @@ import 'package:frontend/pages/dashboard/dashboard_assets.dart';
 import 'package:frontend/pages/dashboard/dashboard_nav.dart';
 import 'package:frontend/pages/dashboard/dashboard_routes.dart';
 import 'package:frontend/pages/dashboard/game_editor/player_game.dart';
+import 'package:frontend/pages/dashboard/game_editor/question_tools/image_pick_helper.dart';
 import 'package:frontend/pages/dashboard/game_editor/question_tools/question_tools_panel.dart';
 import 'package:frontend/pages/dashboard/game_editor/question_tools/questions_editor_panel.dart';
 import 'package:frontend/pages/dashboard/game_editor/question_tools/results_editor_panel.dart';
 import 'package:frontend/pages/dashboard/widgets/dashboard_shell.dart';
 import 'package:frontend/pages/game/models/game_kind.dart';
+import 'package:frontend/pages/game/utils/game_picture_helper.dart';
 import 'package:frontend/theme/app_colors.dart';
 import 'package:frontend/theme/text_theme.dart';
 import 'package:frontend/widgets/toast/app_toast.dart';
@@ -221,16 +223,16 @@ class _DashboardGameEditorPageState extends State<DashboardGameEditorPage> {
               titleController: _titleController,
               descriptionController: _descriptionController,
               kind: _draft.kind,
+              coverImage: _draft.imagePath,
+              playBackground: _draft.playBackgroundPath,
               onKindChanged: (kind) => setState(() => _draft.kind = kind),
-              onChanged: () => setState(_syncDraftFromFields),
+              onCoverChanged: (path) => setState(() => _draft.imagePath = path),
+              onPlayBackgroundChanged: (path) =>
+                  setState(() => _draft.playBackgroundPath = path),
             );
             final preview = _LivePreview(
-              title: _titleController.text.trim().isEmpty
-                  ? 'دنیای انیمه'
-                  : _titleController.text.trim(),
-              description: _descriptionController.text.trim().isEmpty
-                  ? 'توضیحات بازی اینجا نمایش داده می‌شود.'
-                  : _descriptionController.text.trim(),
+              titleController: _titleController,
+              descriptionController: _descriptionController,
               imagePath: _draft.imagePath ?? DashboardAssets.thumb1,
             );
 
@@ -483,15 +485,21 @@ class _InfoForm extends StatelessWidget {
     required this.titleController,
     required this.descriptionController,
     required this.kind,
+    required this.coverImage,
+    required this.playBackground,
     required this.onKindChanged,
-    required this.onChanged,
+    required this.onCoverChanged,
+    required this.onPlayBackgroundChanged,
   });
 
   final TextEditingController titleController;
   final TextEditingController descriptionController;
   final GameKind kind;
+  final String? coverImage;
+  final String? playBackground;
   final ValueChanged<GameKind> onKindChanged;
-  final VoidCallback onChanged;
+  final ValueChanged<String?> onCoverChanged;
+  final ValueChanged<String?> onPlayBackgroundChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -512,7 +520,6 @@ class _InfoForm extends StatelessWidget {
         _outlinedField(
           controller: titleController,
           hint: 'اسم بازی',
-          onChanged: (_) => onChanged(),
         ),
         const SizedBox(height: 18),
         _label('نوع بازی'),
@@ -545,19 +552,27 @@ class _InfoForm extends StatelessWidget {
           controller: descriptionController,
           hint: 'توضیحات کوتاه درباره بازی...',
           maxLines: 5,
-          onChanged: (_) => onChanged(),
         ),
         const SizedBox(height: 18),
-        _label('اضافه کردن تصویر'),
+        _label('تصاویر بازی'),
         const SizedBox(height: 10),
-        Row(
-          children: List.generate(
-            3,
-            (index) => Padding(
-              padding: EdgeInsets.only(left: index < 2 ? 12 : 0),
-              child: _ImageSlot(filled: index == 0),
+        Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: [
+            _EditableImageSlot(
+              label: 'کاور / کارت بازی',
+              hint: 'نمایش در لیست و صفحه معرفی',
+              imageData: coverImage,
+              onChanged: onCoverChanged,
             ),
-          ),
+            _EditableImageSlot(
+              label: 'پس‌زمینه بازی',
+              hint: 'نمایش زیر فرم سوالات هنگام بازی',
+              imageData: playBackground,
+              onChanged: onPlayBackgroundChanged,
+            ),
+          ],
         ),
       ],
     );
@@ -578,7 +593,6 @@ class _InfoForm extends StatelessWidget {
     required TextEditingController controller,
     required String hint,
     int maxLines = 1,
-    required ValueChanged<String> onChanged,
   }) {
     final orangeBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
@@ -588,7 +602,6 @@ class _InfoForm extends StatelessWidget {
     return TextField(
       controller: controller,
       maxLines: maxLines,
-      onChanged: onChanged,
       cursorColor: AppColors.primaryGold,
       style: AppTextTheme.getTextStyle(
         fontSize: 14,
@@ -611,6 +624,146 @@ class _InfoForm extends StatelessWidget {
         focusedBorder: orangeBorder.copyWith(
           borderSide: const BorderSide(color: AppColors.primaryGold, width: 1.6),
         ),
+      ),
+    );
+  }
+}
+
+class _EditableImageSlot extends StatefulWidget {
+  const _EditableImageSlot({
+    required this.label,
+    required this.hint,
+    required this.imageData,
+    required this.onChanged,
+  });
+
+  final String label;
+  final String hint;
+  final String? imageData;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  State<_EditableImageSlot> createState() => _EditableImageSlotState();
+}
+
+class _EditableImageSlotState extends State<_EditableImageSlot> {
+  bool _busy = false;
+
+  Future<void> _pick() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final dataUrl = await pickImageAsDataUrl();
+      if (!mounted) return;
+      if (dataUrl == null || dataUrl.isEmpty) return;
+      widget.onChanged(dataUrl);
+    } catch (_) {
+      if (mounted) {
+        AppToast.error(context, 'خطا در انتخاب تصویر');
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget? _preview() {
+    final data = widget.imageData;
+    if (data == null || data.isEmpty) return null;
+    return GamePictureHelper.image(picture: data);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final preview = _preview();
+    return SizedBox(
+      width: 160,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            widget.label,
+            style: AppTextTheme.getTextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textLight,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            widget.hint,
+            style: AppTextTheme.getTextStyle(
+              fontSize: 11,
+              color: AppColors.textMuted,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _busy ? null : _pick,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                height: 110,
+                decoration: BoxDecoration(
+                  color: AppColors.backgroundDark,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: preview != null
+                        ? AppColors.primaryGold
+                        : AppColors.textMuted.withValues(alpha: 0.45),
+                  ),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (preview != null)
+                      preview
+                    else
+                      Center(
+                        child: _busy
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.primaryGold,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.add_photo_alternate_outlined,
+                                color: AppColors.textMuted,
+                                size: 28,
+                              ),
+                      ),
+                    if (preview != null)
+                      Positioned(
+                        top: 6,
+                        left: 6,
+                        child: Material(
+                          color: Colors.black54,
+                          shape: const CircleBorder(),
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: () => widget.onChanged(null),
+                            child: const Padding(
+                              padding: EdgeInsets.all(4),
+                              child: Icon(
+                                Icons.close,
+                                size: 14,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -654,69 +807,15 @@ class _KindChip extends StatelessWidget {
   }
 }
 
-class _ImageSlot extends StatelessWidget {
-  const _ImageSlot({required this.filled});
-
-  final bool filled;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 88,
-      height: 88,
-      decoration: BoxDecoration(
-        color: AppColors.backgroundDark,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: AppColors.textMuted.withValues(alpha: 0.45),
-          style: BorderStyle.solid,
-        ),
-        image: filled
-            ? const DecorationImage(
-                image: AssetImage(DashboardAssets.thumb1),
-                fit: BoxFit.cover,
-              )
-            : null,
-      ),
-      child: filled
-          ? null
-          : Stack(
-              children: [
-                const Center(
-                  child: Icon(
-                    Icons.image_outlined,
-                    color: AppColors.textMuted,
-                    size: 28,
-                  ),
-                ),
-                Positioned(
-                  left: 6,
-                  bottom: 6,
-                  child: Container(
-                    width: 18,
-                    height: 18,
-                    decoration: const BoxDecoration(
-                      color: AppColors.errorColor,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.add, size: 14, color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-    );
-  }
-}
-
 class _LivePreview extends StatelessWidget {
   const _LivePreview({
-    required this.title,
-    required this.description,
+    required this.titleController,
+    required this.descriptionController,
     required this.imagePath,
   });
 
-  final String title;
-  final String description;
+  final TextEditingController titleController;
+  final TextEditingController descriptionController;
   final String imagePath;
 
   @override
@@ -733,35 +832,49 @@ class _LivePreview extends StatelessWidget {
         children: [
           AspectRatio(
             aspectRatio: 1,
-            child: Image.asset(imagePath, fit: BoxFit.cover),
+            child: GamePictureHelper.image(picture: imagePath),
           ),
           Padding(
             padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: AppTextTheme.getTextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textLight,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  '«$description»',
-                  textAlign: TextAlign.center,
-                  maxLines: 5,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextTheme.getTextStyle(
-                    fontSize: 12,
-                    color: AppColors.textMuted,
-                    height: 1.6,
-                  ),
-                ),
-              ],
+            child: ListenableBuilder(
+              listenable: Listenable.merge([
+                titleController,
+                descriptionController,
+              ]),
+              builder: (context, _) {
+                final title = titleController.text.trim().isEmpty
+                    ? 'دنیای انیمه'
+                    : titleController.text.trim();
+                final description = descriptionController.text.trim().isEmpty
+                    ? 'توضیحات بازی اینجا نمایش داده می‌شود.'
+                    : descriptionController.text.trim();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: AppTextTheme.getTextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textLight,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      '«$description»',
+                      textAlign: TextAlign.center,
+                      maxLines: 5,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextTheme.getTextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                        height: 1.6,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
