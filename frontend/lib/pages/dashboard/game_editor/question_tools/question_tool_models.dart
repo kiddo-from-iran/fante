@@ -184,6 +184,13 @@ class QuestionToolBlock {
     options.removeAt(index);
     if (index < optionImages.length) optionImages.removeAt(index);
     if (index < optionScores.length) optionScores.removeAt(index);
+    final correct = correctOptionIndex;
+    if (correct == null) return;
+    if (correct == index) {
+      correctOptionIndex = null;
+    } else if (correct > index) {
+      correctOptionIndex = correct - 1;
+    }
   }
 
   ResultScoreMap scoresFor(int index) {

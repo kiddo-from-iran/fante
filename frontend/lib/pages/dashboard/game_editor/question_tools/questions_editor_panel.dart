@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/pages/dashboard/game_editor/question_tools/question_tool_models.dart';
 import 'package:frontend/pages/dashboard/game_editor/question_tools/question_tool_widgets.dart';
+import 'package:frontend/pages/game/models/game_kind.dart';
 import 'package:frontend/theme/app_colors.dart';
 import 'package:frontend/theme/text_theme.dart';
 
@@ -8,6 +9,7 @@ import 'package:frontend/theme/text_theme.dart';
 class QuestionsEditorPanel extends StatelessWidget {
   const QuestionsEditorPanel({
     super.key,
+    required this.gameKind,
     required this.questions,
     required this.results,
     required this.activeIndex,
@@ -18,6 +20,7 @@ class QuestionsEditorPanel extends StatelessWidget {
     required this.onDropTool,
   });
 
+  final GameKind gameKind;
   final List<GameQuestionDraft> questions;
   final List<GameResultDraft> results;
   final int activeIndex;
@@ -26,6 +29,8 @@ class QuestionsEditorPanel extends StatelessWidget {
   final VoidCallback onToolsChanged;
   final VoidCallback onAddQuestion;
   final ValueChanged<QuestionToolKind> onDropTool;
+
+  bool get _isQuiz => gameKind == GameKind.quiz;
 
   @override
   Widget build(BuildContext context) {
@@ -137,6 +142,7 @@ class QuestionsEditorPanel extends StatelessWidget {
         return MultipleChoiceToolWidget(
           block: block,
           results: results,
+          isQuiz: _isQuiz,
           onChanged: onToolsChanged,
           onRemove: remove,
         );
@@ -144,6 +150,7 @@ class QuestionsEditorPanel extends StatelessWidget {
         return MultipleChoiceImageToolWidget(
           block: block,
           results: results,
+          isQuiz: _isQuiz,
           onChanged: onToolsChanged,
           onRemove: remove,
         );

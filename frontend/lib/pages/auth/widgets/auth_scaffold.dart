@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/pages/auth/bloc/auth_bloc.dart';
@@ -43,12 +41,8 @@ class AuthScaffold extends StatelessWidget {
               'assets/images/auth_background.png',
               fit: BoxFit.cover,
             ),
-            BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-              child: Container(
-                color: Colors.black.withValues(alpha: 0.15),
-              ),
-            ),
+            // Solid dim instead of full-screen blur for smoother Chrome scrolling.
+            Container(color: Colors.black.withValues(alpha: 0.35)),
             SafeArea(
               child: Column(
                 children: [
@@ -65,9 +59,7 @@ class AuthScaffold extends StatelessWidget {
                           child: ClipRRect(
                           borderRadius:
                               BorderRadius.circular(AuthLayout.cardBorderRadius),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                            child: Container(
+                          child: Container(
                               width: double.infinity,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: AuthLayout.cardPaddingHorizontal,
@@ -84,7 +76,6 @@ class AuthScaffold extends StatelessWidget {
                               ),
                               child: child,
                             ),
-                          ),
                         ),
                         ),
                       ),

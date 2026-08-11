@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:frontend/pages/auth/widgets/auth_nav_bar.dart';
 import 'package:frontend/pages/profile/profile_assets.dart';
@@ -49,13 +47,9 @@ class _ProfileScaffoldState extends State<ProfileScaffold> {
             Image.asset(
               ProfileAssets.background,
               fit: BoxFit.cover,
+              gaplessPlayback: true,
             ),
-            BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: Container(
-                color: Colors.black.withValues(alpha: 0.55),
-              ),
-            ),
+            const ColoredBox(color: Color(0x8C000000)),
             SafeArea(
               child: Column(
                 children: [

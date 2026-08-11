@@ -94,6 +94,12 @@ class PlayerGameMapper {
               .map((o) => o.trim().isEmpty ? 'گزینه' : o.trim())
               .toList();
           if (options.isEmpty) continue;
+          final images = List<String?>.generate(
+            options.length,
+            (oi) => oi < tool.optionImages.length ? tool.optionImages[oi] : null,
+          );
+          final hasImages = tool.kind == QuestionToolKind.multipleChoiceImage ||
+              images.any((img) => img != null && img.isNotEmpty);
           if (game.kind == GameKind.poll) {
             steps.add(
               PollPlayData(
@@ -108,10 +114,13 @@ class PlayerGameMapper {
                       label: options[oi],
                       percent: 0,
                       isSelected: oi == 0,
+                      image: hasImages ? images[oi] : null,
                     ),
                 ],
                 selectedIndex: 0,
                 showPercentages: false,
+                useImageCards: hasImages,
+                imageCardColumns: tool.tileColumns.clamp(2, 3),
               ),
             );
           } else {
@@ -125,6 +134,8 @@ class PlayerGameMapper {
                 questionNumber: steps.length + 1,
                 question: prompt,
                 options: options,
+                optionImages: hasImages ? images : const [],
+                imageCardColumns: tool.tileColumns.clamp(2, 3),
                 selectedIndex: -1,
                 correctIndex:
                     isQuiz ? tool.resolveCorrectIndexForQuiz() : null,

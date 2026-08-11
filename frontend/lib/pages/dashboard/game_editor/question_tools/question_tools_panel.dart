@@ -1,13 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/pages/dashboard/game_editor/question_tools/question_tool_models.dart';
+import 'package:frontend/pages/game/models/game_kind.dart';
 import 'package:frontend/theme/app_colors.dart';
 import 'package:frontend/theme/text_theme.dart';
 
 /// Side panel listing draggable question tools.
 class QuestionToolsPanel extends StatelessWidget {
-  const QuestionToolsPanel({super.key});
+  const QuestionToolsPanel({
+    super.key,
+    required this.gameKind,
+  });
 
-  static const tools = QuestionToolKind.values;
+  final GameKind gameKind;
+
+  List<QuestionToolKind> get tools {
+    // Quizzes have a single correct answer — range scoring does not apply.
+    if (gameKind == GameKind.quiz) {
+      return QuestionToolKind.values
+          .where((k) => k != QuestionToolKind.range)
+          .toList();
+    }
+    return QuestionToolKind.values;
+  }
 
   @override
   Widget build(BuildContext context) {

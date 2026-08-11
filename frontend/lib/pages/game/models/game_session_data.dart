@@ -6,11 +6,13 @@ class GameOptionData {
     required this.label,
     required this.percent,
     this.isSelected = false,
+    this.image,
   });
 
   final String label;
   final double percent;
   final bool isSelected;
+  final String? image;
 }
 
 class GameSidebarData {
@@ -56,6 +58,8 @@ class QuizPlayData extends GameSessionData {
     required this.questionNumber,
     required this.question,
     required this.options,
+    this.optionImages = const [],
+    this.imageCardColumns = 2,
     this.selectedIndex = 1,
     this.correctIndex,
   }) : super(kind: GameKind.quiz);
@@ -63,10 +67,20 @@ class QuizPlayData extends GameSessionData {
   final int questionNumber;
   final String question;
   final List<String> options;
+
+  /// Parallel to [options]; null/empty means text-only option.
+  final List<String?> optionImages;
+
+  /// Columns when showing image option cards (2 or 3).
+  final int imageCardColumns;
+
   final int selectedIndex;
 
   /// Designated correct option for quizzes; null means no right/wrong.
   final int? correctIndex;
+
+  bool get hasOptionImages =>
+      optionImages.any((img) => img != null && img.isNotEmpty);
 }
 
 class PollPlayData extends GameSessionData {
@@ -79,12 +93,16 @@ class PollPlayData extends GameSessionData {
     required this.options,
     this.selectedIndex = 0,
     this.showPercentages = true,
+    this.useImageCards = false,
+    this.imageCardColumns = 2,
   }) : super(kind: GameKind.poll);
 
   final String question;
   final List<GameOptionData> options;
   final int selectedIndex;
   final bool showPercentages;
+  final bool useImageCards;
+  final int imageCardColumns;
 }
 
 class PollResultData extends GameSessionData {

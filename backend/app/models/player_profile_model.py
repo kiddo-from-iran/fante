@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import relationship
 
 from backend.app.db.base import Base
@@ -10,6 +10,10 @@ class PlayerStats(Base):
     """Aggregated stats for a member (player) profile."""
 
     __tablename__ = "player_stats"
+    __table_args__ = (
+        Index("ix_player_stats_total_points", "total_points"),
+        Index("ix_player_stats_quizzes_created", "quizzes_created"),
+    )
 
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     total_points = Column(Integer, nullable=False, default=0)
@@ -26,6 +30,9 @@ class PlayerActivity(Base):
     """A completed quiz, poll, or vote by a player."""
 
     __tablename__ = "player_activities"
+    __table_args__ = (
+        Index("ix_player_activities_user_completed", "user_id", "completed_at"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)

@@ -28,11 +28,6 @@ class AuthSocialSection extends StatelessWidget {
                       .read<AuthBloc>()
                       .add(const AuthGoogleSignInRequested()),
             ),
-            AuthGaps.socialButtonGap,
-            AuthSocialButton(
-              provider: AuthSocialProvider.apple,
-              onPressed: null,
-            ),
           ],
         );
       },

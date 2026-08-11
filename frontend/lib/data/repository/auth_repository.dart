@@ -136,6 +136,65 @@ class AuthRepository implements IAuthRepository {
     return user;
   }
 
+  /// Persist profile fields after settings save (API + local auth cache).
+  Future<UserModel> applyProfileUpdate({
+    required String fullName,
+    String? email,
+    String? profilePicture,
+  }) async {
+    final current = authChangeNotifier.value;
+    final id = current?.userId ?? current?.user?.id;
+    if (id == null) {
+      throw Exception('وارد حساب کاربری نشده‌اید');
+    }
+
+    final payload = <String, dynamic>{
+      'full_name': fullName,
+      if (email != null && email.trim().isNotEmpty) 'email': email.trim(),
+    };
+    // Only send short paths/URLs — data URLs exceed DB column size.
+    if (profilePicture != null &&
+        profilePicture.isNotEmpty &&
+        !profilePicture.startsWith('data:') &&
+        profilePicture.length <= 255) {
+      payload['profile_picture'] = profilePicture;
+    }
+
+    try {
+      final user = await _userDataSource.updateUser('$id', payload);
+      final updated = current!.copyWith(user: user, userId: user.id);
+      await _persistAuth(updated);
+      authChangeNotifier.value = updated;
+      return user;
+    } catch (_) {
+      // Offline / API failure — still update local auth cache.
+      final base = current!.user;
+      if (base == null) rethrow;
+      final local = base.copyWith(
+        fullName: fullName,
+        profilePicture: profilePicture ?? base.profilePicture,
+      );
+      // email isn't on copyWith — rebuild if needed
+      final merged = UserModel(
+        id: local.id,
+        fullName: fullName,
+        email: email ?? local.email,
+        phoneNumber: local.phoneNumber,
+        profilePicture: (profilePicture != null &&
+                !profilePicture.startsWith('data:'))
+            ? profilePicture
+            : local.profilePicture,
+        isActive: local.isActive,
+        roleId: local.roleId,
+        createdAt: local.createdAt,
+      );
+      final updated = current.copyWith(user: merged);
+      await _persistAuth(updated);
+      authChangeNotifier.value = updated;
+      return merged;
+    }
+  }
+
   Future<void> _persistAuth(AuthInfo authInfo) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, authInfo.accessToken);
@@ -209,4 +268,7 @@ class UserRepository {
 
   Future<UserModel> getUser(String identifier) =>
       _userDataSource.getUser(identifier);
+
+  Future<UserModel> updateUser(String identifier, Map<String, dynamic> data) =>
+      _userDataSource.updateUser(identifier, data);
 }

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:frontend/pages/auth/widgets/auth_nav_bar.dart';
 import 'package:frontend/pages/game/utils/game_picture_helper.dart';
@@ -92,10 +90,8 @@ class _StableBlurredBackgroundState extends State<_StableBlurredBackground> {
       fit: StackFit.expand,
       children: [
         GamePictureHelper.image(picture: _picture),
-        BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: const ColoredBox(color: Color(0x40000000)),
-        ),
+        // Light overlay instead of heavy live blur (much smoother on Chrome).
+        const ColoredBox(color: Color(0x66000000)),
       ],
     );
   }

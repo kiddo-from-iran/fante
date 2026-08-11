@@ -6,6 +6,7 @@ import 'package:frontend/models/user_model.dart';
 abstract class IUserDataSource {
   Future<UserModel> getCurrentUser();
   Future<UserModel> getUser(String identifier);
+  Future<UserModel> updateUser(String identifier, Map<String, dynamic> data);
 }
 
 class UserRemoteData with HttpResponseValidator implements IUserDataSource {
@@ -27,5 +28,20 @@ class UserRemoteData with HttpResponseValidator implements IUserDataSource {
       httpClient.get(Urls.userUrl(identifier)),
     );
     return UserModel.fromJson(response);
+  }
+
+  @override
+  Future<UserModel> updateUser(
+    String identifier,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await validateResponse<Map<String, dynamic>>(
+      httpClient.put(Urls.userUpdateUrl(identifier), data: data),
+    );
+    final userJson = response['user'];
+    if (userJson is Map<String, dynamic>) {
+      return UserModel.fromJson(userJson);
+    }
+    return getUser(identifier);
   }
 }

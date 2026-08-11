@@ -9,6 +9,7 @@ class CreatorCard extends StatelessWidget {
     required this.avatar,
     required this.quizzesCount,
     required this.rating,
+    this.countLabel = 'کوییز ساخته',
     this.onTap,
   });
 
@@ -16,6 +17,7 @@ class CreatorCard extends StatelessWidget {
   final String avatar;
   final int quizzesCount;
   final double rating;
+  final String countLabel;
   final VoidCallback? onTap;
 
   @override
@@ -60,7 +62,7 @@ class CreatorCard extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                '$quizzesCount کوییز ساخته',
+                '$quizzesCount $countLabel',
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

@@ -449,12 +449,13 @@ class _QuizStep extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        for (var i = 0; i < data.options.length; i++)
-          GameOptionTile(
-            label: data.options[i],
-            selected: selected == i,
-            onTap: () => onSelect(i),
-          ),
+        GameOptionsList(
+          labels: data.options,
+          images: data.optionImages,
+          columns: data.imageCardColumns,
+          selectedIndex: selected,
+          onSelect: onSelect,
+        ),
       ],
     );
   }
@@ -487,12 +488,21 @@ class _PollStep extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        for (var i = 0; i < data.options.length; i++)
-          GameOptionTile(
-            label: data.options[i].label,
-            selected: selected == i,
-            onTap: () => onSelect(i),
-          ),
+        if (data.useImageCards)
+          GameOptionsList(
+            labels: data.options.map((o) => o.label).toList(),
+            images: data.options.map((o) => o.image).toList(),
+            columns: data.imageCardColumns,
+            selectedIndex: selected,
+            onSelect: onSelect,
+          )
+        else
+          for (var i = 0; i < data.options.length; i++)
+            GameOptionTile(
+              label: data.options[i].label,
+              selected: selected == i,
+              onTap: () => onSelect(i),
+            ),
       ],
     );
   }

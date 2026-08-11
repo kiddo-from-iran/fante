@@ -102,16 +102,16 @@ class _QuizPlayViewState extends State<QuizPlayView> {
           ),
         ),
         const SizedBox(height: 20),
-        ...List.generate(data.options.length, (index) {
-          return GameOptionTile(
-            label: data.options[index],
-            selected: _selectedIndex == index,
-            onTap: () {
-              if (_selectedIndex == index) return;
-              setState(() => _selectedIndex = index);
-            },
-          );
-        }),
+        GameOptionsList(
+          labels: data.options,
+          images: data.optionImages,
+          columns: data.imageCardColumns,
+          selectedIndex: _selectedIndex,
+          onSelect: (index) {
+            if (_selectedIndex == index) return;
+            setState(() => _selectedIndex = index);
+          },
+        ),
       ],
     );
   }
@@ -152,18 +152,30 @@ class _PollPlayViewState extends State<PollPlayView> {
           ),
         ),
         const SizedBox(height: 20),
-        ...List.generate(data.options.length, (index) {
-          final option = data.options[index];
-          return GameResultBar(
-            option: option,
-            highlighted: _selectedIndex == index,
-            showPercent: data.showPercentages,
-            onTap: () {
+        if (data.useImageCards)
+          GameOptionsList(
+            labels: data.options.map((o) => o.label).toList(),
+            images: data.options.map((o) => o.image).toList(),
+            columns: data.imageCardColumns,
+            selectedIndex: _selectedIndex,
+            onSelect: (index) {
               if (_selectedIndex == index) return;
               setState(() => _selectedIndex = index);
             },
-          );
-        }),
+          )
+        else
+          ...List.generate(data.options.length, (index) {
+            final option = data.options[index];
+            return GameResultBar(
+              option: option,
+              highlighted: _selectedIndex == index,
+              showPercent: data.showPercentages,
+              onTap: () {
+                if (_selectedIndex == index) return;
+                setState(() => _selectedIndex = index);
+              },
+            );
+          }),
         const SizedBox(height: 12),
         GameOrangeButton(
           label: 'ثبت رای',

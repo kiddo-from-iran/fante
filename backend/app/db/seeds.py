@@ -69,3 +69,10 @@ def seed_player_levels(db: Session) -> None:
         print(f"Created player levels: {', '.join(created)}")
     else:
         print("All player levels already exist")
+
+    try:
+        from backend.app.services.profile_service import clear_player_levels_cache
+
+        clear_player_levels_cache()
+    except Exception:
+        pass

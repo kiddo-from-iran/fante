@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/pages/game/models/game_session_data.dart';
+import 'package:frontend/pages/game/utils/game_picture_helper.dart';
 import 'package:frontend/theme/app_colors.dart';
 import 'package:frontend/theme/text_theme.dart';
 
@@ -156,6 +157,159 @@ class GameOptionTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Image-on-top / text-below option card for picture multiple-choice questions.
+class GameOptionImageCard extends StatelessWidget {
+  const GameOptionImageCard({
+    super.key,
+    required this.label,
+    required this.selected,
+    this.image,
+    this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final String? image;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        splashColor: AppColors.primaryGold.withValues(alpha: 0.12),
+        highlightColor: AppColors.primaryGold.withValues(alpha: 0.06),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceCard.withValues(alpha: 0.55),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? AppColors.primaryGold : AppColors.cardBorder,
+              width: selected ? 1.8 : 1,
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: AppColors.primaryGold.withValues(alpha: 0.22),
+                      blurRadius: 10,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(11),
+                  ),
+                  child: image != null && image!.isNotEmpty
+                      ? GamePictureHelper.image(
+                          picture: image!,
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          color: AppColors.backgroundDark,
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.image_outlined,
+                            size: 36,
+                            color: AppColors.textMuted.withValues(alpha: 0.7),
+                          ),
+                        ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 10, 8, 12),
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextTheme.getTextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color:
+                        selected ? AppColors.primaryGold : AppColors.textLight,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Renders text tiles or a responsive image-card grid.
+class GameOptionsList extends StatelessWidget {
+  const GameOptionsList({
+    super.key,
+    required this.labels,
+    required this.selectedIndex,
+    required this.onSelect,
+    this.images = const [],
+    this.columns = 2,
+  });
+
+  final List<String> labels;
+  final List<String?> images;
+  final int? selectedIndex;
+  final ValueChanged<int> onSelect;
+  final int columns;
+
+  bool get _useCards =>
+      images.any((img) => img != null && img.isNotEmpty);
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_useCards) {
+      return Column(
+        children: [
+          for (var i = 0; i < labels.length; i++)
+            GameOptionTile(
+              label: labels[i],
+              selected: selectedIndex == i,
+              onTap: () => onSelect(i),
+            ),
+        ],
+      );
+    }
+
+    final cols = columns.clamp(2, 3);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 12.0;
+        final width = constraints.maxWidth;
+        final tileWidth = (width - gap * (cols - 1)) / cols;
+
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (var i = 0; i < labels.length; i++)
+              SizedBox(
+                width: tileWidth,
+                height: tileWidth + 52,
+                child: GameOptionImageCard(
+                  label: labels[i],
+                  image: i < images.length ? images[i] : null,
+                  selected: selectedIndex == i,
+                  onTap: () => onSelect(i),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }

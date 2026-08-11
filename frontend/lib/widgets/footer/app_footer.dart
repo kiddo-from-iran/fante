@@ -141,8 +141,11 @@ class _QuickLinksColumn extends StatelessWidget {
   static const _links = <({String label, String? route, Object? args})>[
     (label: 'خانه', route: HomeRoutes.home, args: null),
     (label: 'کوییزها', route: CatalogRoutes.quizzes, args: null),
-    (label: 'تست‌های شخصیت', route: CatalogRoutes.category, args: 'test'),
-    (label: 'جدول رنکینگ', route: null, args: null),
+    (label: 'تست‌های شخصیت', route: CatalogRoutes.tests, args: null),
+    (label: 'نظرسنجی‌ها', route: CatalogRoutes.polls, args: null),
+    (label: 'دسته‌بندی', route: CatalogRoutes.category, args: null),
+    (label: 'جدول رنکینگ', route: InfoRoutes.ranking, args: null),
+    (label: 'مطالب', route: InfoRoutes.articles, args: null),
   ];
 
   @override

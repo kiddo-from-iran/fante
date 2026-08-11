@@ -131,6 +131,32 @@ class _ScoreButton extends StatelessWidget {
   }
 }
 
+/// Radio to mark the single correct option on quiz questions.
+/// Must sit under a `RadioGroup<int>` ancestor.
+class _CorrectAnswerRadio extends StatelessWidget {
+  const _CorrectAnswerRadio({required this.index});
+
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'پاسخ صحیح',
+      child: Radio<int>(
+        value: index,
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return AppColors.primaryGold;
+          }
+          return AppColors.textMuted;
+        }),
+        visualDensity: VisualDensity.compact,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    );
+  }
+}
+
 /// Multiple-choice options tool — add as many option fields as needed.
 class MultipleChoiceToolWidget extends StatefulWidget {
   const MultipleChoiceToolWidget({
@@ -139,12 +165,14 @@ class MultipleChoiceToolWidget extends StatefulWidget {
     required this.results,
     required this.onChanged,
     required this.onRemove,
+    this.isQuiz = false,
   });
 
   final QuestionToolBlock block;
   final List<GameResultDraft> results;
   final VoidCallback onChanged;
   final VoidCallback onRemove;
+  final bool isQuiz;
 
   @override
   State<MultipleChoiceToolWidget> createState() =>
@@ -155,38 +183,52 @@ class _MultipleChoiceToolWidgetState extends State<MultipleChoiceToolWidget> {
   QuestionToolBlock get block => widget.block;
 
   void _notify() {
+    if (!mounted) return;
     setState(() {});
-    widget.onChanged();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onChanged();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     block.ensureScoreSlots();
-    return QuestionToolShell(
-      title: QuestionToolKind.multipleChoice.label,
-      onRemove: widget.onRemove,
-      child: Column(
-        children: [
-          for (var i = 0; i < block.options.length; i++) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    key: ValueKey('${block.id}-opt-$i-${block.options.length}'),
-                    initialValue: block.options[i],
-                    onChanged: (v) {
-                      block.options[i] = v;
-                    },
-                    cursorColor: AppColors.primaryGold,
-                    style: AppTextTheme.getTextStyle(
-                      fontSize: 13,
-                      color: AppColors.textLight,
-                    ),
-                    decoration: questionToolFieldDecoration(
-                      hint: 'متن گزینه ${i + 1}',
-                    ),
+    final body = Column(
+      key: ValueKey('mc-opts-${block.id}-${block.options.length}'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.isQuiz) ...[
+          Text(
+            'پاسخ صحیح را با دکمه رادیویی مشخص کنید',
+            style: AppTextTheme.getTextStyle(
+              fontSize: 12,
+              color: AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        for (var i = 0; i < block.options.length; i++) ...[
+          Row(
+            children: [
+              if (widget.isQuiz) _CorrectAnswerRadio(index: i),
+              Expanded(
+                child: TextFormField(
+                  key: ValueKey('${block.id}-opt-$i-${block.options.length}'),
+                  initialValue: block.options[i],
+                  onChanged: (v) {
+                    block.options[i] = v;
+                  },
+                  cursorColor: AppColors.primaryGold,
+                  style: AppTextTheme.getTextStyle(
+                    fontSize: 13,
+                    color: AppColors.textLight,
+                  ),
+                  decoration: questionToolFieldDecoration(
+                    hint: 'متن گزینه ${i + 1}',
                   ),
                 ),
+              ),
+              if (!widget.isQuiz)
                 _ScoreButton(
                   hasScores: block.totalAssignedPoints(i) != 0,
                   onPressed: () => _editScores(
@@ -200,20 +242,23 @@ class _MultipleChoiceToolWidgetState extends State<MultipleChoiceToolWidget> {
                     onChanged: _notify,
                   ),
                 ),
-                if (block.options.length > 2)
-                  IconButton(
-                    onPressed: () {
-                      block.removeChoiceAt(i);
-                      _notify();
-                    },
-                    icon: const Icon(
-                      Icons.remove_circle_outline,
-                      color: AppColors.textMuted,
-                      size: 20,
-                    ),
+              if (block.options.length > 2)
+                IconButton(
+                  onPressed: () {
+                    setState(() => block.removeChoiceAt(i));
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) widget.onChanged();
+                    });
+                  },
+                  icon: const Icon(
+                    Icons.remove_circle_outline,
+                    color: AppColors.textMuted,
+                    size: 20,
                   ),
-              ],
-            ),
+                ),
+            ],
+          ),
+          if (!widget.isQuiz)
             Align(
               alignment: Alignment.centerRight,
               child: OptionScoreSummary(
@@ -221,27 +266,44 @@ class _MultipleChoiceToolWidgetState extends State<MultipleChoiceToolWidget> {
                 results: widget.results,
               ),
             ),
-            const SizedBox(height: 10),
-          ],
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () {
-                block.addChoice();
-                _notify();
-              },
-              icon: const Icon(Icons.add, size: 18, color: AppColors.primaryGold),
-              label: Text(
-                'افزودن گزینه',
-                style: AppTextTheme.getTextStyle(
-                  fontSize: 13,
-                  color: AppColors.primaryGold,
-                ),
+          const SizedBox(height: 10),
+        ],
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: () {
+              setState(() => block.addChoice());
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) widget.onChanged();
+              });
+            },
+            icon: const Icon(Icons.add, size: 18, color: AppColors.primaryGold),
+            label: Text(
+              'افزودن گزینه',
+              style: AppTextTheme.getTextStyle(
+                fontSize: 13,
+                color: AppColors.primaryGold,
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
+    );
+
+    return QuestionToolShell(
+      title: QuestionToolKind.multipleChoice.label,
+      onRemove: widget.onRemove,
+      child: widget.isQuiz
+          ? RadioGroup<int>(
+              groupValue: block.correctOptionIndex,
+              onChanged: (value) {
+                if (value == null) return;
+                block.correctOptionIndex = value;
+                _notify();
+              },
+              child: body,
+            )
+          : body,
     );
   }
 }
@@ -254,12 +316,14 @@ class MultipleChoiceImageToolWidget extends StatefulWidget {
     required this.results,
     required this.onChanged,
     required this.onRemove,
+    this.isQuiz = false,
   });
 
   final QuestionToolBlock block;
   final List<GameResultDraft> results;
   final VoidCallback onChanged;
   final VoidCallback onRemove;
+  final bool isQuiz;
 
   @override
   State<MultipleChoiceImageToolWidget> createState() =>
@@ -269,12 +333,27 @@ class MultipleChoiceImageToolWidget extends StatefulWidget {
 class _MultipleChoiceImageToolWidgetState
     extends State<MultipleChoiceImageToolWidget> {
   int? _pickingIndex;
+  int _optionsTick = 0;
 
   QuestionToolBlock get block => widget.block;
 
   void _notify() {
+    if (!mounted) return;
     setState(() {});
-    widget.onChanged();
+    // Defer parent rebuild so it does not cancel this frame's local update.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onChanged();
+    });
+  }
+
+  void _addOption() {
+    setState(() {
+      block.addChoice();
+      _optionsTick++;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onChanged();
+    });
   }
 
   Future<void> _pickImage(int index) async {
@@ -289,7 +368,7 @@ class _MultipleChoiceImageToolWidgetState
         block.optionImages.add(null);
       }
       block.optionImages[index] = dataUrl;
-      widget.onChanged();
+      _notify();
     } catch (_) {
       if (mounted) {
         AppToast.error(context, 'خطا در باز کردن پنجره انتخاب تصویر');
@@ -304,55 +383,75 @@ class _MultipleChoiceImageToolWidgetState
       block.optionImages.add(null);
     }
     block.optionImages[index] = null;
-    widget.onChanged();
+    _notify();
   }
 
   @override
   Widget build(BuildContext context) {
     block.ensureScoreSlots();
-    return QuestionToolShell(
-      title: QuestionToolKind.multipleChoiceImage.label,
-      onRemove: widget.onRemove,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _ImageLayoutPicker(
-            layout: block.imageLayout,
-            tileColumns: block.tileColumns,
-            onLayoutChanged: (layout) {
-              block.imageLayout = layout;
-              _notify();
-            },
-            onColumnsChanged: (cols) {
-              block.tileColumns = cols;
-              _notify();
-            },
-          ),
-          const SizedBox(height: 14),
-          if (block.imageLayout == ImageChoiceLayout.list)
-            ..._buildListLayout()
-          else
-            _buildTilesLayout(),
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () {
-                block.addChoice();
-                _notify();
-              },
-              icon: const Icon(Icons.add, size: 18, color: AppColors.primaryGold),
-              label: Text(
-                'افزودن گزینه تصویری',
-                style: AppTextTheme.getTextStyle(
-                  fontSize: 13,
-                  color: AppColors.primaryGold,
-                ),
-              ),
+    final body = Column(
+      key: ValueKey('img-opts-${block.id}-$_optionsTick-${block.options.length}'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _ImageLayoutPicker(
+          layout: block.imageLayout,
+          tileColumns: block.tileColumns,
+          onLayoutChanged: (layout) {
+            block.imageLayout = layout;
+            _notify();
+          },
+          onColumnsChanged: (cols) {
+            block.tileColumns = cols;
+            _notify();
+          },
+        ),
+        if (widget.isQuiz) ...[
+          const SizedBox(height: 10),
+          Text(
+            'پاسخ صحیح را با دکمه رادیویی مشخص کنید',
+            style: AppTextTheme.getTextStyle(
+              fontSize: 12,
+              color: AppColors.textMuted,
             ),
           ),
         ],
-      ),
+        const SizedBox(height: 14),
+        if (block.imageLayout == ImageChoiceLayout.list)
+          ..._buildListLayout()
+        else
+          _buildTilesLayout(),
+        const SizedBox(height: 4),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: _addOption,
+            icon: const Icon(Icons.add, size: 18, color: AppColors.primaryGold),
+            label: Text(
+              'افزودن گزینه تصویری',
+              style: AppTextTheme.getTextStyle(
+                fontSize: 13,
+                color: AppColors.primaryGold,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    return QuestionToolShell(
+      title: QuestionToolKind.multipleChoiceImage.label,
+      onRemove: widget.onRemove,
+      child: widget.isQuiz
+          ? RadioGroup<int>(
+              groupValue: block.correctOptionIndex,
+              onChanged: (value) {
+                if (value == null) return;
+                block.correctOptionIndex = value;
+                _notify();
+              },
+              child: body,
+            )
+          : body,
     );
   }
 
@@ -362,6 +461,11 @@ class _MultipleChoiceImageToolWidgetState
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (widget.isQuiz)
+              Padding(
+                padding: const EdgeInsets.only(top: 24),
+                child: _CorrectAnswerRadio(index: i),
+              ),
             _ImageUploadSlot(
               imageData: i < block.optionImages.length
                   ? block.optionImages[i]
@@ -375,7 +479,7 @@ class _MultipleChoiceImageToolWidgetState
             Expanded(
               child: TextFormField(
                 key: ValueKey(
-                  '${block.id}-img-opt-$i-${block.options.length}',
+                  '${block.id}-img-opt-$i-$_optionsTick-${block.options.length}',
                 ),
                 initialValue: block.options[i],
                 onChanged: (v) {
@@ -391,24 +495,30 @@ class _MultipleChoiceImageToolWidgetState
                 ),
               ),
             ),
-            _ScoreButton(
-              hasScores: block.totalAssignedPoints(i) != 0,
-              onPressed: () => _editScores(
-                context: context,
-                block: block,
-                index: i,
-                choiceLabel: block.options[i].trim().isEmpty
-                    ? 'گزینه تصویری ${i + 1}'
-                    : block.options[i],
-                results: widget.results,
-                onChanged: _notify,
+            if (!widget.isQuiz)
+              _ScoreButton(
+                hasScores: block.totalAssignedPoints(i) != 0,
+                onPressed: () => _editScores(
+                  context: context,
+                  block: block,
+                  index: i,
+                  choiceLabel: block.options[i].trim().isEmpty
+                      ? 'گزینه تصویری ${i + 1}'
+                      : block.options[i],
+                  results: widget.results,
+                  onChanged: _notify,
+                ),
               ),
-            ),
-            if (block.options.length > 2)
+                if (block.options.length > 2)
               IconButton(
                 onPressed: () {
-                  block.removeChoiceAt(i);
-                  _notify();
+                  setState(() {
+                    block.removeChoiceAt(i);
+                    _optionsTick++;
+                  });
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) widget.onChanged();
+                  });
                 },
                 icon: const Icon(
                   Icons.remove_circle_outline,
@@ -418,13 +528,14 @@ class _MultipleChoiceImageToolWidgetState
               ),
           ],
         ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: OptionScoreSummary(
-            scores: block.scoresFor(i),
-            results: widget.results,
+        if (!widget.isQuiz)
+          Align(
+            alignment: Alignment.centerRight,
+            child: OptionScoreSummary(
+              scores: block.scoresFor(i),
+              results: widget.results,
+            ),
           ),
-        ),
         const SizedBox(height: 10),
       ],
     ];
@@ -454,7 +565,12 @@ class _MultipleChoiceImageToolWidgetState
                     color: AppColors.backgroundDark.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.primaryGold.withValues(alpha: 0.35),
+                      color: block.correctOptionIndex == i && widget.isQuiz
+                          ? AppColors.primaryGold
+                          : AppColors.primaryGold.withValues(alpha: 0.35),
+                      width: block.correctOptionIndex == i && widget.isQuiz
+                          ? 1.8
+                          : 1,
                     ),
                   ),
                   child: Column(
@@ -476,7 +592,7 @@ class _MultipleChoiceImageToolWidgetState
                       const SizedBox(height: 8),
                       TextFormField(
                         key: ValueKey(
-                          '${block.id}-tile-opt-$i-${block.options.length}',
+                          '${block.id}-tile-opt-$i-$_optionsTick-${block.options.length}',
                         ),
                         initialValue: block.options[i],
                         onChanged: (v) {
@@ -500,24 +616,32 @@ class _MultipleChoiceImageToolWidgetState
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _ScoreButton(
-                            hasScores: block.totalAssignedPoints(i) != 0,
-                            onPressed: () => _editScores(
-                              context: context,
-                              block: block,
-                              index: i,
-                              choiceLabel: block.options[i].trim().isEmpty
-                                  ? 'گزینه تصویری ${i + 1}'
-                                  : block.options[i],
-                              results: widget.results,
-                              onChanged: _notify,
+                          if (widget.isQuiz)
+                            _CorrectAnswerRadio(index: i)
+                          else
+                            _ScoreButton(
+                              hasScores: block.totalAssignedPoints(i) != 0,
+                              onPressed: () => _editScores(
+                                context: context,
+                                block: block,
+                                index: i,
+                                choiceLabel: block.options[i].trim().isEmpty
+                                    ? 'گزینه تصویری ${i + 1}'
+                                    : block.options[i],
+                                results: widget.results,
+                                onChanged: _notify,
+                              ),
                             ),
-                          ),
                           if (block.options.length > 2)
                             IconButton(
                               onPressed: () {
-                                block.removeChoiceAt(i);
-                                _notify();
+                                setState(() {
+                                  block.removeChoiceAt(i);
+                                  _optionsTick++;
+                                });
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if (mounted) widget.onChanged();
+                                });
                               },
                               icon: const Icon(
                                 Icons.remove_circle_outline,
@@ -527,10 +651,11 @@ class _MultipleChoiceImageToolWidgetState
                             ),
                         ],
                       ),
-                      OptionScoreSummary(
-                        scores: block.scoresFor(i),
-                        results: widget.results,
-                      ),
+                      if (!widget.isQuiz)
+                        OptionScoreSummary(
+                          scores: block.scoresFor(i),
+                          results: widget.results,
+                        ),
                     ],
                   ),
                 ),

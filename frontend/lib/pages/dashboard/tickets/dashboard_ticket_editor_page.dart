@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/pages/dashboard/dashboard_nav.dart';
 import 'package:frontend/pages/dashboard/dashboard_routes.dart';
+import 'package:frontend/pages/dashboard/data/dashboard_controller.dart';
 import 'package:frontend/pages/dashboard/tickets/player_ticket.dart';
 import 'package:frontend/pages/dashboard/widgets/dashboard_shell.dart';
 import 'package:frontend/theme/app_colors.dart';
@@ -75,6 +76,7 @@ class _DashboardTicketEditorPageState extends State<DashboardTicketEditorPage> {
     );
 
     PlayerTicketsStore.instance.upsert(ticket);
+    dashboardController.refreshLocalSlices();
     AppToast.success(
       context,
       _isEditing ? 'تیکت با موفقیت ویرایش شد' : 'تیکت با موفقیت ثبت شد',
@@ -233,11 +235,15 @@ class _DashboardTicketEditorPageState extends State<DashboardTicketEditorPage> {
                       child: ElevatedButton(
                         onPressed: _cancel,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.backgroundDark,
+                          backgroundColor: AppColors.surfaceCard,
                           foregroundColor: AppColors.textLight,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: AppColors.primaryGold.withValues(alpha: 0.7),
+                              width: 1.2,
+                            ),
                           ),
                         ),
                         child: Text(

@@ -1,3 +1,6 @@
+from typing import NamedTuple, Optional, Tuple
+
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from backend.app.models.player_level_model import PlayerLevel
@@ -14,6 +17,15 @@ from backend.app.schemas.profile_schemas import (
 from backend.app.schemas.user_schemas import UserRead
 
 
+class _LevelRow(NamedTuple):
+    level: int
+    title: Optional[str]
+    xp_threshold: int
+
+
+_levels_cache: Optional[Tuple[_LevelRow, ...]] = None
+
+
 def ensure_player_stats(db: Session, user_id: int) -> PlayerStats:
     stats = db.query(PlayerStats).filter(PlayerStats.user_id == user_id).first()
     if stats:
@@ -25,12 +37,29 @@ def ensure_player_stats(db: Session, user_id: int) -> PlayerStats:
     return stats
 
 
-def _compute_level_progress(db: Session, total_points: int) -> PlayerLevelProgressRead:
-    levels = (
+def clear_player_levels_cache() -> None:
+    global _levels_cache
+    _levels_cache = None
+
+
+def _get_levels(db: Session) -> Tuple[_LevelRow, ...]:
+    global _levels_cache
+    if _levels_cache is not None:
+        return _levels_cache
+    rows = (
         db.query(PlayerLevel)
         .order_by(PlayerLevel.level.asc())
         .all()
     )
+    _levels_cache = tuple(
+        _LevelRow(level=r.level, title=r.title, xp_threshold=r.xp_threshold)
+        for r in rows
+    )
+    return _levels_cache
+
+
+def _compute_level_progress(db: Session, total_points: int) -> PlayerLevelProgressRead:
+    levels = _get_levels(db)
     if not levels:
         return PlayerLevelProgressRead(
             level=1,
@@ -41,7 +70,7 @@ def _compute_level_progress(db: Session, total_points: int) -> PlayerLevelProgre
         )
 
     current = levels[0]
-    nxt = levels[1] if len(levels) > 1 else None
+    nxt: Optional[_LevelRow] = levels[1] if len(levels) > 1 else None
 
     for index, level_row in enumerate(levels):
         if total_points >= level_row.xp_threshold:
@@ -77,8 +106,19 @@ def _compute_level_progress(db: Session, total_points: int) -> PlayerLevelProgre
 
 
 def _compute_ranking(db: Session, user_id: int, total_points: int) -> PlayerRankingRead:
-    member_filter = (
-        db.query(PlayerStats)
+    row = (
+        db.query(
+            func.count(PlayerStats.user_id),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (PlayerStats.total_points > total_points, 1),
+                        else_=0,
+                    )
+                ),
+                0,
+            ),
+        )
         .join(User, PlayerStats.user_id == User.id)
         .join(Role, User.role_id == Role.id)
         .filter(
@@ -86,15 +126,12 @@ def _compute_ranking(db: Session, user_id: int, total_points: int) -> PlayerRank
             User.is_removed.is_(False),
             User.is_active.is_(True),
         )
+        .one()
     )
-
-    total_players = member_filter.count()
+    total_players = int(row[0] or 0)
+    higher_count = int(row[1] or 0)
     if total_players == 0:
         return PlayerRankingRead(rank=1, total_players=1)
-
-    higher_count = (
-        member_filter.filter(PlayerStats.total_points > total_points).count()
-    )
     return PlayerRankingRead(rank=higher_count + 1, total_players=total_players)
 
 

@@ -11,7 +11,12 @@ import 'package:frontend/utils/jalali_date.dart';
 import 'package:frontend/widgets/toast/app_toast.dart';
 
 class DashboardGamesPage extends StatefulWidget {
-  const DashboardGamesPage({super.key});
+  const DashboardGamesPage({
+    super.key,
+    this.draftsOnly = false,
+  });
+
+  final bool draftsOnly;
 
   @override
   State<DashboardGamesPage> createState() => _DashboardGamesPageState();
@@ -19,9 +24,13 @@ class DashboardGamesPage extends StatefulWidget {
 
 class _DashboardGamesPageState extends State<DashboardGamesPage> {
   GameKind? _filter;
+  late bool _draftsOnly = widget.draftsOnly;
 
   List<PlayerGame> get _filtered {
-    final all = PlayerGamesStore.instance.all;
+    var all = PlayerGamesStore.instance.all;
+    if (_draftsOnly) {
+      all = all.where((g) => !g.isPublished).toList();
+    }
     if (_filter == null) return all;
     return all.where((g) => g.kind == _filter).toList();
   }
@@ -100,7 +109,9 @@ class _DashboardGamesPageState extends State<DashboardGamesPage> {
           _GamesTableSection(
             games: _filtered,
             filter: _filter,
+            draftsOnly: _draftsOnly,
             onFilterChanged: (value) => setState(() => _filter = value),
+            onDraftsOnlyChanged: (value) => setState(() => _draftsOnly = value),
             onEdit: _editGame,
             onDelete: _deleteGame,
           ),
@@ -179,21 +190,25 @@ class _GamesTableSection extends StatelessWidget {
   const _GamesTableSection({
     required this.games,
     required this.filter,
+    required this.draftsOnly,
     required this.onFilterChanged,
+    required this.onDraftsOnlyChanged,
     required this.onEdit,
     required this.onDelete,
   });
 
   final List<PlayerGame> games;
   final GameKind? filter;
+  final bool draftsOnly;
   final ValueChanged<GameKind?> onFilterChanged;
+  final ValueChanged<bool> onDraftsOnlyChanged;
   final ValueChanged<PlayerGame> onEdit;
   final ValueChanged<PlayerGame> onDelete;
 
   @override
   Widget build(BuildContext context) {
     return DashboardCard(
-      title: 'بازی‌های ساخته‌شده',
+      title: draftsOnly ? 'پیش‌نویس‌های ناتمام' : 'بازی‌های ساخته‌شده',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -203,8 +218,16 @@ class _GamesTableSection extends StatelessWidget {
             children: [
               _FilterChip(
                 label: 'همه',
-                selected: filter == null,
-                onTap: () => onFilterChanged(null),
+                selected: filter == null && !draftsOnly,
+                onTap: () {
+                  onDraftsOnlyChanged(false);
+                  onFilterChanged(null);
+                },
+              ),
+              _FilterChip(
+                label: 'پیش‌نویس',
+                selected: draftsOnly,
+                onTap: () => onDraftsOnlyChanged(!draftsOnly),
               ),
               _FilterChip(
                 label: 'کوییز',

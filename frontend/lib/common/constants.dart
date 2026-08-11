@@ -31,8 +31,24 @@ class Urls {
   static String get gamesUrl => '$baseUrl/api/v1/games/';
   static String gameDetailUrl(int id) => '$baseUrl/api/v1/games/$id';
 
+  static String get dashboardAnnouncementsUrl =>
+      '$baseUrl/api/v1/dashboard/announcements';
+  static String get dashboardNotificationsUrl =>
+      '$baseUrl/api/v1/dashboard/notifications';
+  static String dashboardNotificationReadUrl(String id) =>
+      '$baseUrl/api/v1/dashboard/notifications/$id/read';
+  static String get dashboardNotificationsReadAllUrl =>
+      '$baseUrl/api/v1/dashboard/notifications/read-all';
+  static String get dashboardBadgesUrl => '$baseUrl/api/v1/dashboard/badges';
+  static String get dashboardReviewsUrl => '$baseUrl/api/v1/dashboard/reviews';
+  static String get dashboardActivitySeriesUrl =>
+      '$baseUrl/api/v1/dashboard/activity-series';
+  static String get dashboardTicketsUrl => '$baseUrl/api/v1/dashboard/tickets';
+
   static String userUrl(String identifier) =>
       '$baseUrl/api/v1/user/$identifier';
+  static String userUpdateUrl(String identifier) =>
+      '$baseUrl/api/v1/user/update/$identifier';
 
   // ========================================
   // LEGACY BUS TEMPLATE ENDPOINTS

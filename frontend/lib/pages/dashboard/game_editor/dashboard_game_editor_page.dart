@@ -18,9 +18,11 @@ class DashboardGameEditorPage extends StatefulWidget {
   const DashboardGameEditorPage({
     super.key,
     this.gameId,
+    this.initialKind,
   });
 
   final String? gameId;
+  final GameKind? initialKind;
 
   @override
   State<DashboardGameEditorPage> createState() =>
@@ -84,7 +86,7 @@ class _DashboardGameEditorPageState extends State<DashboardGameEditorPage> {
         id: PlayerGamesStore.instance.nextId(),
         title: '',
         description: '',
-        kind: GameKind.quiz,
+        kind: widget.initialKind ?? GameKind.quiz,
         createdAt: DateTime.now(),
         imagePath: DashboardAssets.thumb1,
         results: [
@@ -225,7 +227,14 @@ class _DashboardGameEditorPageState extends State<DashboardGameEditorPage> {
               kind: _draft.kind,
               coverImage: _draft.imagePath,
               playBackground: _draft.playBackgroundPath,
-              onKindChanged: (kind) => setState(() => _draft.kind = kind),
+              onKindChanged: (kind) => setState(() {
+                _draft.kind = kind;
+                if (kind == GameKind.quiz) {
+                  for (final q in _draft.questions) {
+                    q.tools.removeWhere((t) => t.kind == QuestionToolKind.range);
+                  }
+                }
+              }),
               onCoverChanged: (path) => setState(() => _draft.imagePath = path),
               onPlayBackgroundChanged: (path) =>
                   setState(() => _draft.playBackgroundPath = path),
@@ -278,6 +287,7 @@ class _DashboardGameEditorPageState extends State<DashboardGameEditorPage> {
         builder: (context, constraints) {
           final wide = constraints.maxWidth >= 860;
           final main = QuestionsEditorPanel(
+            gameKind: _draft.kind,
             questions: _draft.questions,
             results: _draft.results,
             activeIndex: _activeQuestion,
@@ -293,6 +303,14 @@ class _DashboardGameEditorPageState extends State<DashboardGameEditorPage> {
               });
             },
             onDropTool: (kind) {
+              if (_draft.kind == GameKind.quiz &&
+                  kind == QuestionToolKind.range) {
+                AppToast.warning(
+                  context,
+                  'ابزار بازه برای کوییز در دسترس نیست.',
+                );
+                return;
+              }
               final tools = _draft.questions[_activeQuestion].tools;
               if (tools.isNotEmpty) {
                 AppToast.warning(
@@ -306,7 +324,7 @@ class _DashboardGameEditorPageState extends State<DashboardGameEditorPage> {
               });
             },
           );
-          const side = QuestionToolsPanel();
+          final side = QuestionToolsPanel(gameKind: _draft.kind);
 
           if (!wide) {
             return Column(
@@ -323,7 +341,7 @@ class _DashboardGameEditorPageState extends State<DashboardGameEditorPage> {
             children: [
               Expanded(child: main),
               const SizedBox(width: 16),
-              const SizedBox(width: 168, child: side),
+              SizedBox(width: 168, child: side),
             ],
           );
         },

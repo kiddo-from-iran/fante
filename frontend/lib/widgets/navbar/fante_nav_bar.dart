@@ -24,11 +24,11 @@ class FanteNavBar extends StatelessWidget {
     (label: 'تماس با ما', route: InfoRoutes.contact, args: null),
     (label: 'قوانین ما', route: InfoRoutes.terms, args: null),
     (label: 'درباره ما', route: InfoRoutes.about, args: null),
-    (label: 'مطالب', route: null, args: null),
-    (label: 'رنکینگ', route: null, args: null),
-    (label: 'نظرسنجی‌ها', route: null, args: null),
+    (label: 'مطالب', route: InfoRoutes.articles, args: null),
+    (label: 'رنکینگ', route: InfoRoutes.ranking, args: null),
+    (label: 'نظرسنجی‌ها', route: CatalogRoutes.polls, args: null),
     (label: 'کوییزها', route: CatalogRoutes.quizzes, args: null),
-    (label: 'تست‌ها', route: CatalogRoutes.category, args: 'test'),
+    (label: 'تست‌ها', route: CatalogRoutes.tests, args: null),
     (label: 'دسته‌بندی', route: CatalogRoutes.category, args: null),
   ];
 
@@ -42,7 +42,21 @@ class FanteNavBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 48),
         child: Row(
           children: [
-            const BrandLogo(height: 68),
+            if (showAuthActions)
+              BlocBuilder<AuthBloc, AuthState>(
+                builder: (context, state) {
+                  if (state is AuthAuthenticated) {
+                    return _AuthenticatedNavActions(user: state.authInfo.user);
+                  }
+                  return _LoginButton(
+                    onPressed: () {
+                      Navigator.of(context).pushNamed(AuthRoutes.landing);
+                    },
+                  );
+                },
+              )
+            else
+              const SizedBox(width: 68),
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
@@ -61,19 +75,7 @@ class FanteNavBar extends StatelessWidget {
                 ),
               ),
             ),
-            if (showAuthActions)
-              BlocBuilder<AuthBloc, AuthState>(
-                builder: (context, state) {
-                  if (state is AuthAuthenticated) {
-                    return _AuthenticatedNavActions(user: state.authInfo.user);
-                  }
-                  return _LoginButton(
-                    onPressed: () {
-                      Navigator.of(context).pushNamed(AuthRoutes.landing);
-                    },
-                  );
-                },
-              ),
+            const BrandLogo(height: 68),
           ],
         ),
       ),
@@ -193,7 +195,7 @@ class _AuthenticatedNavActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
       tooltip: UserAvatarHelper.displayName(user),
-      offset: const Offset(0, 44),
+      offset: const Offset(0, 52),
       color: AppColors.surfaceCard,
       elevation: 8,
       shape: RoundedRectangleBorder(
@@ -229,7 +231,7 @@ class _AuthenticatedNavActions extends StatelessWidget {
         }
       },
       child: CircleAvatar(
-        radius: 19,
+        radius: 24,
         backgroundColor: AppColors.surfaceCard,
         backgroundImage: UserAvatarHelper.avatarImage(user),
       ),
